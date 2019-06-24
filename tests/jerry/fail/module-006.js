@@ -13,4 +13,5 @@
  * limitations under the License.
  */
 
-import { as as as } from "tests/jerry/es2015/module-imported.js";
+/* Can't have reserved words for the referenced bindings. */
+export { yield as y };

@@ -57,9 +57,9 @@ ecma_free_string_list (ecma_lit_storage_item_t *string_list_p) /**< string list 
 void
 ecma_finalize_lit_storage (void)
 {
-#ifndef CONFIG_DISABLE_ES2015_SYMBOL_BUILTIN
+#if ENABLED (JERRY_ES2015_BUILTIN_SYMBOL)
   ecma_free_string_list (JERRY_CONTEXT (symbol_list_first_p));
-#endif /* !CONFIG_DISABLE_ES2015_SYMBOL_BUILTIN */
+#endif /* ENABLED (JERRY_ES2015_BUILTIN_SYMBOL) */
   ecma_free_string_list (JERRY_CONTEXT (string_list_first_p));
   ecma_free_string_list (JERRY_CONTEXT (number_list_first_p));
 } /* ecma_finalize_lit_storage */
@@ -233,7 +233,7 @@ ecma_find_or_create_literal_number (ecma_number_t number_arg) /**< number to be 
  */
 #define JERRY_SNAPSHOT_LITERAL_IS_NUMBER (1u << ECMA_VALUE_SHIFT)
 
-#ifdef JERRY_ENABLE_SNAPSHOT_SAVE
+#if ENABLED (JERRY_SNAPSHOT_SAVE)
 
 /**
  * Append the value at the end of the appropriate list if it is not present there.
@@ -463,9 +463,9 @@ ecma_save_literals_for_snapshot (ecma_collection_header_t *lit_pool_p, /**< list
   return true;
 } /* ecma_save_literals_for_snapshot */
 
-#endif /* JERRY_ENABLE_SNAPSHOT_SAVE */
+#endif /* ENABLED (JERRY_SNAPSHOT_SAVE) */
 
-#if defined JERRY_ENABLE_SNAPSHOT_EXEC || defined JERRY_ENABLE_SNAPSHOT_SAVE
+#if ENABLED (JERRY_SNAPSHOT_EXEC) || ENABLED (JERRY_SNAPSHOT_SAVE)
 
 /**
  * Get the compressed pointer of a given literal.
@@ -492,7 +492,7 @@ ecma_snapshot_get_literal (const uint8_t *literal_base_p, /**< literal start */
   return ecma_find_or_create_literal_string (literal_p + sizeof (uint16_t), length);
 } /* ecma_snapshot_get_literal */
 
-#endif /* JERRY_ENABLE_SNAPSHOT_EXEC || JERRY_ENABLE_SNAPSHOT_SAVE */
+#endif /* ENABLED (JERRY_SNAPSHOT_EXEC) || ENABLED (JERRY_SNAPSHOT_SAVE) */
 
 /**
  * @}

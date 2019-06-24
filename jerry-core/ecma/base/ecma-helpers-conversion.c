@@ -28,7 +28,7 @@
  * @{
  */
 
-#if CONFIG_ECMA_NUMBER_TYPE == CONFIG_ECMA_NUMBER_FLOAT64
+#if ENABLED (JERRY_NUMBER_TYPE_FLOAT64)
 
 /**
  * \addtogroup ecmahelpersbigintegers Helpers for operations intermediate 128-bit integers
@@ -46,9 +46,22 @@ typedef struct
 
 /**
  * Round high part of 128-bit integer to uint64_t
+ *
+ * @return rounded high to uint64_t
  */
-#define ECMA_UINT128_ROUND_HIGH_TO_UINT64(name) \
-  (name.hi + (name.lo >> 63u))
+static uint64_t
+ecma_round_high_to_uint64 (ecma_uint128_t *num_p)
+{
+  uint64_t masked_lo = num_p->lo & ~(1ULL << 63u);
+  uint64_t masked_hi = num_p->hi & 0x1;
+
+  if ((num_p->lo >> 63u != 0)
+      && (masked_lo > 0 || masked_hi != 0))
+  {
+    return (num_p->hi + 1);
+  }
+  return num_p->hi;
+} /* ecma_round_high_to_uint64 */
 
 /**
  * Check if 128-bit integer is zero
@@ -249,7 +262,7 @@ static const uint8_t ecma_uint4_clz[] = { 4, 3, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 0,
  */
 #define NUMBER_MIN_DECIMAL_EXPONENT -324
 
-#elif CONFIG_ECMA_NUMBER_TYPE == CONFIG_ECMA_NUMBER_FLOAT32
+#elif !ENABLED (JERRY_NUMBER_TYPE_FLOAT64)
 
 /**
  * Number.MAX_VALUE exponent part when using 32 bit float representation.
@@ -260,7 +273,7 @@ static const uint8_t ecma_uint4_clz[] = { 4, 3, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 0,
  */
 #define NUMBER_MIN_DECIMAL_EXPONENT -45
 
-#endif /* CONFIG_ECMA_NUMBER_TYPE == CONFIG_ECMA_NUMBER_FLOAT64 */
+#endif /* ENABLED (JERRY_NUMBER_TYPE_FLOAT64) */
 
 /**
  * Value of epsilon
@@ -568,7 +581,7 @@ ecma_utf8_string_to_number (const lit_utf8_byte_t *str_p, /**< utf-8 string */
     return sign ? -ECMA_NUMBER_ZERO : ECMA_NUMBER_ZERO;
   }
 
-#if CONFIG_ECMA_NUMBER_TYPE == CONFIG_ECMA_NUMBER_FLOAT64
+#if ENABLED (JERRY_NUMBER_TYPE_FLOAT64)
   /*
    * 128-bit mantissa storage
    *
@@ -650,10 +663,10 @@ ecma_utf8_string_to_number (const lit_utf8_byte_t *str_p, /**< utf-8 string */
 
   JERRY_ASSERT (ECMA_UINT128_CLZ_MAX63 (fraction_uint128) == 11);
 
-  fraction_uint64 = ECMA_UINT128_ROUND_HIGH_TO_UINT64 (fraction_uint128);
+  fraction_uint64 = ecma_round_high_to_uint64 (&fraction_uint128);
 
   return ecma_number_make_from_sign_mantissa_and_exponent (sign, fraction_uint64, binary_exponent);
-#elif CONFIG_ECMA_NUMBER_TYPE == CONFIG_ECMA_NUMBER_FLOAT32
+#elif !ENABLED (JERRY_NUMBER_TYPE_FLOAT64)
   /* Less precise conversion */
   ecma_number_t num = (ecma_number_t) (uint32_t) fraction_uint64;
 
@@ -671,7 +684,7 @@ ecma_utf8_string_to_number (const lit_utf8_byte_t *str_p, /**< utf-8 string */
   }
 
   return num;
-#endif /* CONFIG_ECMA_NUMBER_TYPE == CONFIG_ECMA_NUMBER_FLOAT64 */
+#endif /* ENABLED (JERRY_NUMBER_TYPE_FLOAT64) */
 } /* ecma_utf8_string_to_number */
 
 /**

@@ -26,7 +26,7 @@
 #include "lit-char-helpers.h"
 #include "re-compiler.h"
 
-#ifndef CONFIG_DISABLE_REGEXP_BUILTIN
+#if ENABLED (JERRY_BUILTIN_REGEXP)
 
 #define ECMA_BUILTINS_INTERNAL
 #include "ecma-builtins-internal.h"
@@ -66,9 +66,9 @@
 /*
  * Check RegExp recursion depth limit
  */
-#ifdef REGEXP_RECURSION_LIMIT
-JERRY_STATIC_ASSERT (REGEXP_RECURSION_LIMIT > 0, regexp_recursion_limit_must_be_greater_than_zero);
-#endif /* REGEXP_RECURSION_LIMIT */
+#if defined (JERRY_REGEXP_RECURSION_LIMIT) && (JERRY_REGEXP_RECURSION_LIMIT != 0)
+JERRY_STATIC_ASSERT (JERRY_REGEXP_RECURSION_LIMIT > 0, regexp_recursion_limit_must_be_greater_than_zero);
+#endif /* defined (JERRY_REGEXP_RECURSION_LIMIT) && (JERRY_REGEXP_RECURSION_LIMIT) != 0) */
 
 /**
  * Parse RegExp flags (global, ignoreCase, multiline)
@@ -1362,7 +1362,7 @@ ecma_regexp_exec_helper (ecma_value_t regexp_value, /**< RegExp object */
     }
   }
 
-  if (input_curr_p && (re_ctx.flags & RE_FLAG_GLOBAL))
+  if (!ECMA_IS_VALUE_ERROR (ret_value) && input_curr_p && (re_ctx.flags & RE_FLAG_GLOBAL))
   {
     ecma_number_t lastindex_num;
 
@@ -1494,4 +1494,4 @@ ecma_regexp_read_pattern_str_helper (ecma_value_t pattern_arg, /**< the RegExp p
  * @}
  */
 
-#endif /* !CONFIG_DISABLE_REGEXP_BUILTIN */
+#endif /* ENABLED (JERRY_BUILTIN_REGEXP) */

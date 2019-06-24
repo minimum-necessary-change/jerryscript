@@ -30,15 +30,15 @@
 #include "vm-defines.h"
 #include "vm-stack.h"
 
-#ifndef CONFIG_DISABLE_ES2015_TYPEDARRAY_BUILTIN
+#if ENABLED (JERRY_ES2015_BUILTIN_TYPEDARRAY)
 #include "ecma-typedarray-object.h"
-#endif /* !CONFIG_DISABLE_ES2015_TYPEDARRAY_BUILTIN */
-#ifndef CONFIG_DISABLE_ES2015_PROMISE_BUILTIN
+#endif /* ENABLED (JERRY_ES2015_BUILTIN_TYPEDARRAY) */
+#if ENABLED (JERRY_ES2015_BUILTIN_PROMISE)
 #include "ecma-promise-object.h"
-#endif /* !CONFIG_DISABLE_ES2015_PROMISE_BUILTIN */
-#ifndef CONFIG_DISABLE_ES2015_MAP_BUILTIN
-#include "ecma-map-object.h"
-#endif /* !CONFIG_DISABLE_ES2015_MAP_BUILTIN */
+#endif /* ENABLED (JERRY_ES2015_BUILTIN_PROMISE) */
+#if ENABLED (JERRY_ES2015_BUILTIN_MAP)
+#include "ecma-container-object.h"
+#endif /* ENABLED (JERRY_ES2015_BUILTIN_MAP) */
 
 /* TODO: Extract GC to a separate component */
 
@@ -209,7 +209,7 @@ ecma_gc_mark_property (ecma_property_pair_t *property_pair_p, /**< property pair
   }
 } /* ecma_gc_mark_property */
 
-#ifndef CONFIG_DISABLE_ES2015_PROMISE_BUILTIN
+#if ENABLED (JERRY_ES2015_BUILTIN_PROMISE)
 
 /**
  * Mark objects referenced by Promise built-in.
@@ -244,51 +244,7 @@ ecma_gc_mark_promise_object (ecma_extended_object_t *ext_object_p) /**< extended
   }
 } /* ecma_gc_mark_promise_object */
 
-#endif /* !CONFIG_DISABLE_ES2015_PROMISE_BUILTIN */
-
-#ifndef CONFIG_DISABLE_ES2015_MAP_BUILTIN
-
-/**
- * Mark objects referenced by Map built-in.
- */
-static void
-ecma_gc_mark_map_object (ecma_extended_object_t *ext_object_p) /**< extended object */
-{
-  ecma_map_object_t *map_object_p = (ecma_map_object_t *) ext_object_p;
-
-  jmem_cpointer_t first_chunk_cp = map_object_p->first_chunk_cp;
-
-  if (JERRY_UNLIKELY (first_chunk_cp == ECMA_NULL_POINTER))
-  {
-    return;
-  }
-
-  ecma_value_t *item_p = ECMA_GET_NON_NULL_POINTER (ecma_map_object_chunk_t, first_chunk_cp)->items;
-
-  while (true)
-  {
-    ecma_value_t item = *item_p++;
-
-    if (!ecma_is_value_pointer (item))
-    {
-      if (ecma_is_value_object (item))
-      {
-        ecma_gc_set_object_visited (ecma_get_object_from_value (item));
-      }
-    }
-    else
-    {
-      item_p = (ecma_value_t *) ecma_get_pointer_from_value (item);
-
-      if (item_p == NULL)
-      {
-        return;
-      }
-    }
-  }
-} /* ecma_gc_mark_map_object */
-
-#endif /* !CONFIG_DISABLE_ES2015_MAP_BUILTIN */
+#endif /* ENABLED (JERRY_ES2015_BUILTIN_PROMISE) */
 
 /**
  * Mark objects as visited starting from specified object as root
@@ -333,20 +289,21 @@ ecma_gc_mark (ecma_object_t *object_p) /**< object to mark from */
 
         switch (ext_object_p->u.class_prop.class_id)
         {
-#ifndef CONFIG_DISABLE_ES2015_PROMISE_BUILTIN
+#if ENABLED (JERRY_ES2015_BUILTIN_PROMISE)
           case LIT_MAGIC_STRING_PROMISE_UL:
           {
             ecma_gc_mark_promise_object (ext_object_p);
             break;
           }
-#endif /* !CONFIG_DISABLE_ES2015_PROMISE_BUILTIN */
-#ifndef CONFIG_DISABLE_ES2015_MAP_BUILTIN
-          case LIT_MAGIC_STRING_MAP_UL:
+#endif /* ENABLED (JERRY_ES2015_BUILTIN_PROMISE) */
+#if ENABLED (JERRY_ES2015_BUILTIN_DATAVIEW)
+          case LIT_MAGIC_STRING_DATAVIEW_UL:
           {
-            ecma_gc_mark_map_object (ext_object_p);
+            ecma_dataview_object_t *dataview_p = (ecma_dataview_object_t *) object_p;
+            ecma_gc_set_object_visited (dataview_p->buffer_p);
             break;
           }
-#endif /* !CONFIG_DISABLE_ES2015_MAP_BUILTIN */
+#endif /* ENABLED (JERRY_ES2015_BUILTIN_DATAVIEW) */
           default:
           {
             break;
@@ -361,27 +318,29 @@ ecma_gc_mark (ecma_object_t *object_p) /**< object to mark from */
 
         switch (ext_object_p->u.pseudo_array.type)
         {
-#ifndef CONFIG_DISABLE_ES2015_TYPEDARRAY_BUILTIN
+#if ENABLED (JERRY_ES2015_BUILTIN_TYPEDARRAY)
           case ECMA_PSEUDO_ARRAY_TYPEDARRAY:
           case ECMA_PSEUDO_ARRAY_TYPEDARRAY_WITH_INFO:
           {
             ecma_gc_set_object_visited (ecma_typedarray_get_arraybuffer (object_p));
             break;
           }
-#endif /* !CONFIG_DISABLE_ES2015_TYPEDARRAY_BUILTIN */
-#ifndef CONFIG_DISABLE_ES2015_ITERATOR_BUILTIN
+#endif /* ENABLED (JERRY_ES2015_BUILTIN_TYPEDARRAY) */
+#if ENABLED (JERRY_ES2015_BUILTIN_ITERATOR)
           case ECMA_PSEUDO_ARRAY_ITERATOR:
           {
-            ecma_object_t *iterated_obj_p = ECMA_GET_POINTER (ecma_object_t,
-                                                              ext_object_p->u.pseudo_array.u2.iterated_value_cp);
-
-            if (iterated_obj_p != NULL)
+            ecma_value_t iterated_value = ext_object_p->u.pseudo_array.u2.iterated_value;
+            if (!ecma_is_value_empty (iterated_value))
             {
-              ecma_gc_set_object_visited (iterated_obj_p);
+              ecma_gc_set_object_visited (ecma_get_object_from_value (iterated_value));
             }
             break;
           }
-#endif /* !CONFIG_DISABLE_ES2015_ITERATOR_BUILTIN */
+          case ECMA_PSEUDO_STRING_ITERATOR:
+          {
+            break;
+          }
+#endif /* ENABLED (JERRY_ES2015_BUILTIN_ITERATOR) */
           default:
           {
             JERRY_ASSERT (ext_object_p->u.pseudo_array.type == ECMA_PSEUDO_ARRAY_ARGUMENTS);
@@ -442,7 +401,7 @@ ecma_gc_mark (ecma_object_t *object_p) /**< object to mark from */
         }
         break;
       }
-#ifndef CONFIG_DISABLE_ES2015_ARROW_FUNCTION
+#if ENABLED (JERRY_ES2015_ARROW_FUNCTION)
       case ECMA_OBJECT_TYPE_ARROW_FUNCTION:
       {
         ecma_arrow_function_t *arrow_func_p = (ecma_arrow_function_t *) object_p;
@@ -456,7 +415,7 @@ ecma_gc_mark (ecma_object_t *object_p) /**< object to mark from */
         }
         break;
       }
-#endif /* !CONFIG_DISABLE_ES2015_ARROW_FUNCTION */
+#endif /* ENABLED (JERRY_ES2015_ARROW_FUNCTION) */
       default:
       {
         break;
@@ -501,17 +460,24 @@ ecma_gc_free_native_pointer (ecma_property_t *property_p) /**< property */
   native_pointer_p = ECMA_GET_INTERNAL_VALUE_POINTER (ecma_native_pointer_t,
                                                       value_p->value);
 
-  if (native_pointer_p->info_p != NULL)
+  while (native_pointer_p != NULL)
   {
-    ecma_object_native_free_callback_t free_cb = native_pointer_p->info_p->free_cb;
-
-    if (free_cb != NULL)
+    if (native_pointer_p->info_p != NULL)
     {
-      free_cb (native_pointer_p->data_p);
-    }
-  }
+      ecma_object_native_free_callback_t free_cb = native_pointer_p->info_p->free_cb;
 
-  jmem_heap_free_block (native_pointer_p, sizeof (ecma_native_pointer_t));
+      if (free_cb != NULL)
+      {
+        free_cb (native_pointer_p->data_p);
+      }
+    }
+
+    ecma_native_pointer_t *next_p = native_pointer_p->next_p;
+
+    jmem_heap_free_block (native_pointer_p, sizeof (ecma_native_pointer_t));
+
+    native_pointer_p = next_p;
+  }
 } /* ecma_gc_free_native_pointer */
 
 /**
@@ -605,9 +571,9 @@ ecma_gc_free_object (ecma_object_t *object_p) /**< object to free */
 
       switch (ext_object_p->u.class_prop.class_id)
       {
-#ifndef CONFIG_DISABLE_ES2015_SYMBOL_BUILTIN
+#if ENABLED (JERRY_ES2015_BUILTIN_SYMBOL)
         case LIT_MAGIC_STRING_SYMBOL_UL:
-#endif /* !CONFIG_DISABLE_ES2015_SYMBOL_BUILTIN */
+#endif /* ENABLED (JERRY_ES2015_BUILTIN_SYMBOL) */
         case LIT_MAGIC_STRING_STRING_UL:
         case LIT_MAGIC_STRING_NUMBER_UL:
         {
@@ -635,7 +601,7 @@ ecma_gc_free_object (ecma_object_t *object_p) /**< object to free */
           }
           break;
         }
-#ifndef CONFIG_DISABLE_ES2015_TYPEDARRAY_BUILTIN
+#if ENABLED (JERRY_ES2015_BUILTIN_TYPEDARRAY)
         case LIT_MAGIC_STRING_ARRAY_BUFFER_UL:
         {
           ecma_length_t arraybuffer_length = ext_object_p->u.class_prop.u.length;
@@ -662,8 +628,8 @@ ecma_gc_free_object (ecma_object_t *object_p) /**< object to free */
           ecma_dealloc_extended_object (object_p, size);
           return;
         }
-#endif /* !CONFIG_DISABLE_ES2015_TYPEDARRAY_BUILTIN */
-#ifndef CONFIG_DISABLE_ES2015_PROMISE_BUILTIN
+#endif /* ENABLED (JERRY_ES2015_BUILTIN_TYPEDARRAY) */
+#if ENABLED (JERRY_ES2015_BUILTIN_PROMISE)
         case LIT_MAGIC_STRING_PROMISE_UL:
         {
           ecma_free_value_if_not_object (ext_object_p->u.class_prop.u.value);
@@ -674,15 +640,25 @@ ecma_gc_free_object (ecma_object_t *object_p) /**< object to free */
           ecma_dealloc_extended_object (object_p, sizeof (ecma_promise_object_t));
           return;
         }
-#endif /* !CONFIG_DISABLE_ES2015_PROMISE_BUILTIN */
-#ifndef CONFIG_DISABLE_ES2015_MAP_BUILTIN
+#endif /* ENABLED (JERRY_ES2015_BUILTIN_PROMISE) */
+#if ENABLED (JERRY_ES2015_BUILTIN_SET)
+        case LIT_MAGIC_STRING_SET_UL:
+#endif /* ENABLED (JERRY_ES2015_BUILTIN_SET) */
+#if ENABLED (JERRY_ES2015_BUILTIN_MAP)
         case LIT_MAGIC_STRING_MAP_UL:
         {
-          ecma_op_map_clear_map ((ecma_map_object_t *) object_p);
+          ecma_op_container_clear_map ((ecma_map_object_t *) object_p);
           ecma_dealloc_extended_object (object_p, sizeof (ecma_map_object_t));
           return;
         }
-#endif /* !CONFIG_DISABLE_ES2015_MAP_BUILTIN */
+#endif /* ENABLED (JERRY_ES2015_BUILTIN_MAP) */
+#if ENABLED (JERRY_ES2015_BUILTIN_DATAVIEW)
+        case LIT_MAGIC_STRING_DATAVIEW_UL:
+        {
+          ecma_dealloc_extended_object (object_p, sizeof (ecma_dataview_object_t));
+          return;
+        }
+#endif /* ENABLED (JERRY_ES2015_BUILTIN_DATAVIEW) */
         default:
         {
           /* The undefined id represents an uninitialized class. */
@@ -711,7 +687,7 @@ ecma_gc_free_object (ecma_object_t *object_p) /**< object to free */
       /* Function with byte-code (not a built-in function). */
       ecma_extended_object_t *ext_func_p = (ecma_extended_object_t *) object_p;
 
-#ifdef JERRY_ENABLE_SNAPSHOT_EXEC
+#if ENABLED (JERRY_SNAPSHOT_EXEC)
       if (ext_func_p->u.function.bytecode_cp != ECMA_NULL_POINTER)
       {
         ecma_bytecode_deref (ECMA_GET_INTERNAL_VALUE_POINTER (ecma_compiled_code_t,
@@ -722,22 +698,22 @@ ecma_gc_free_object (ecma_object_t *object_p) /**< object to free */
       {
         ecma_dealloc_extended_object (object_p, sizeof (ecma_static_function_t));
       }
-#else /* !JERRY_ENABLE_SNAPSHOT_EXEC */
+#else /* !ENABLED (JERRY_SNAPSHOT_EXEC) */
       ecma_bytecode_deref (ECMA_GET_INTERNAL_VALUE_POINTER (ecma_compiled_code_t,
                                                             ext_func_p->u.function.bytecode_cp));
       ecma_dealloc_extended_object (object_p, sizeof (ecma_extended_object_t));
-#endif /* JERRY_ENABLE_SNAPSHOT_EXEC */
+#endif /* ENABLED (JERRY_SNAPSHOT_EXEC) */
       return;
     }
 
-#ifndef CONFIG_DISABLE_ES2015_ARROW_FUNCTION
+#if ENABLED (JERRY_ES2015_ARROW_FUNCTION)
     if (object_type == ECMA_OBJECT_TYPE_ARROW_FUNCTION)
     {
       ecma_arrow_function_t *arrow_func_p = (ecma_arrow_function_t *) object_p;
 
       ecma_free_value_if_not_object (arrow_func_p->this_binding);
 
-#ifdef JERRY_ENABLE_SNAPSHOT_EXEC
+#if ENABLED (JERRY_SNAPSHOT_EXEC)
       if (arrow_func_p->bytecode_cp != ECMA_NULL_POINTER)
       {
         ecma_bytecode_deref (ECMA_GET_NON_NULL_POINTER (ecma_compiled_code_t,
@@ -748,14 +724,14 @@ ecma_gc_free_object (ecma_object_t *object_p) /**< object to free */
       {
         ecma_dealloc_extended_object (object_p, sizeof (ecma_static_arrow_function_t));
       }
-#else /* !JERRY_ENABLE_SNAPSHOT_EXEC */
+#else /* !ENABLED (JERRY_SNAPSHOT_EXEC) */
       ecma_bytecode_deref (ECMA_GET_NON_NULL_POINTER (ecma_compiled_code_t,
                                                       arrow_func_p->bytecode_cp));
       ecma_dealloc_extended_object (object_p, sizeof (ecma_arrow_function_t));
-#endif /* JERRY_ENABLE_SNAPSHOT_EXEC */
+#endif /* ENABLED (JERRY_SNAPSHOT_EXEC) */
       return;
     }
-#endif /* !CONFIG_DISABLE_ES2015_ARROW_FUNCTION */
+#endif /* ENABLED (JERRY_ES2015_ARROW_FUNCTION) */
 
     if (object_type == ECMA_OBJECT_TYPE_PSEUDO_ARRAY)
     {
@@ -763,7 +739,7 @@ ecma_gc_free_object (ecma_object_t *object_p) /**< object to free */
 
       switch (ext_object_p->u.pseudo_array.type)
       {
-#ifndef CONFIG_DISABLE_ES2015_TYPEDARRAY_BUILTIN
+#if ENABLED (JERRY_ES2015_BUILTIN_TYPEDARRAY)
         case ECMA_PSEUDO_ARRAY_TYPEDARRAY:
         {
           ecma_dealloc_extended_object (object_p, sizeof (ecma_extended_object_t));
@@ -774,14 +750,25 @@ ecma_gc_free_object (ecma_object_t *object_p) /**< object to free */
           ecma_dealloc_extended_object (object_p, sizeof (ecma_extended_typedarray_object_t));
           return;
         }
-#endif /* !CONFIG_DISABLE_ES2015_TYPEDARRAY_BUILTIN */
-#ifndef CONFIG_DISABLE_ES2015_ITERATOR_BUILTIN
+#endif /* ENABLED (JERRY_ES2015_BUILTIN_TYPEDARRAY) */
+#if ENABLED (JERRY_ES2015_BUILTIN_ITERATOR)
         case ECMA_PSEUDO_ARRAY_ITERATOR:
         {
           ecma_dealloc_extended_object (object_p, sizeof (ecma_extended_object_t));
           return;
         }
-#endif /* !CONFIG_DISABLE_ES2015_ITERATOR_BUILTIN */
+        case ECMA_PSEUDO_STRING_ITERATOR:
+        {
+          ecma_value_t iterated_value = ext_object_p->u.pseudo_array.u2.iterated_value;
+
+          if (!ecma_is_value_empty (iterated_value))
+          {
+            ecma_deref_ecma_string (ecma_get_string_from_value (iterated_value));
+          }
+          ecma_dealloc_extended_object (object_p, sizeof (ecma_extended_object_t));
+          return;
+        }
+#endif /* ENABLED (JERRY_ES2015_BUILTIN_ITERATOR) */
         default:
         {
           JERRY_ASSERT (ext_object_p->u.pseudo_array.type == ECMA_PSEUDO_ARRAY_ARGUMENTS);
@@ -983,10 +970,10 @@ ecma_gc_run (jmem_free_unused_memory_severity_t severity) /**< gc severity */
 
   JERRY_CONTEXT (ecma_gc_objects_p) = black_objects_p;
 
-#ifndef CONFIG_DISABLE_REGEXP_BUILTIN
+#if ENABLED (JERRY_BUILTIN_REGEXP)
   /* Free RegExp bytecodes stored in cache */
   re_cache_gc_run ();
-#endif /* !CONFIG_DISABLE_REGEXP_BUILTIN */
+#endif /* ENABLED (JERRY_BUILTIN_REGEXP) */
 } /* ecma_gc_run */
 
 /**
@@ -1006,13 +993,13 @@ ecma_free_unused_memory (jmem_free_unused_memory_severity_t severity) /**< sever
 
   if (severity == JMEM_FREE_UNUSED_MEMORY_SEVERITY_LOW)
   {
-#ifndef CONFIG_ECMA_PROPERTY_HASHMAP_DISABLE
+#if ENABLED (JERRY_PROPRETY_HASHMAP)
     if (JERRY_CONTEXT (ecma_prop_hashmap_alloc_state) > ECMA_PROP_HASHMAP_ALLOC_ON)
     {
       --JERRY_CONTEXT (ecma_prop_hashmap_alloc_state);
     }
     JERRY_CONTEXT (status_flags) &= (uint32_t) ~ECMA_STATUS_HIGH_SEV_GC;
-#endif /* !CONFIG_ECMA_PROPERTY_HASHMAP_DISABLE */
+#endif /* ENABLED (JERRY_PROPRETY_HASHMAP) */
 
     /*
      * If there is enough newly allocated objects since last GC, probably it is worthwhile to start GC now.
@@ -1029,7 +1016,7 @@ ecma_free_unused_memory (jmem_free_unused_memory_severity_t severity) /**< sever
   {
     JERRY_ASSERT (severity == JMEM_FREE_UNUSED_MEMORY_SEVERITY_HIGH);
 
-#ifndef CONFIG_ECMA_PROPERTY_HASHMAP_DISABLE
+#if ENABLED (JERRY_PROPRETY_HASHMAP)
     if (JERRY_CONTEXT (status_flags) & ECMA_STATUS_HIGH_SEV_GC)
     {
       JERRY_CONTEXT (ecma_prop_hashmap_alloc_state) = ECMA_PROP_HASHMAP_ALLOC_MAX;
@@ -1039,7 +1026,7 @@ ecma_free_unused_memory (jmem_free_unused_memory_severity_t severity) /**< sever
       ++JERRY_CONTEXT (ecma_prop_hashmap_alloc_state);
       JERRY_CONTEXT (status_flags) |= ECMA_STATUS_HIGH_SEV_GC;
     }
-#endif /* !CONFIG_ECMA_PROPERTY_HASHMAP_DISABLE */
+#endif /* ENABLED (JERRY_PROPRETY_HASHMAP) */
 
     /* Freeing as much memory as we currently can */
     ecma_gc_run (severity);

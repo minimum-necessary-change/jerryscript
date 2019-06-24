@@ -25,23 +25,6 @@
  * @{
  */
 
-/**
- * Header of a ECMA stack frame's chunk
- */
-typedef struct
-{
-  uint16_t prev_chunk_p;                      /**< previous chunk of same frame */
-} vm_stack_chunk_header_t;
-
-/**
- * ECMA stack frame
- */
-typedef struct vm_stack_frame_t
-{
-  struct vm_stack_frame_t *prev_frame_p;      /**< previous frame */
-  uint32_t regs_number;                       /**< number of register variables */
-} vm_stack_frame_t;
-
 #define VM_CREATE_CONTEXT(type, end_offset) ((ecma_value_t) ((type) | (end_offset) << 4))
 #define VM_GET_CONTEXT_TYPE(value) ((vm_stack_context_type_t) ((value) & 0xf))
 #define VM_GET_CONTEXT_END(value) ((value) >> 4)
@@ -57,10 +40,13 @@ typedef enum
   VM_CONTEXT_TRY,                             /**< try context */
   VM_CONTEXT_CATCH,                           /**< catch context */
   VM_CONTEXT_WITH,                            /**< with context */
-#ifndef CONFIG_DISABLE_ES2015_CLASS
+#if ENABLED (JERRY_ES2015_CLASS)
   VM_CONTEXT_SUPER_CLASS,                     /**< super class context */
-#endif /* !CONFIG_DISABLE_ES2015_CLASS */
+#endif /* ENABLED (JERRY_ES2015_CLASS) */
   VM_CONTEXT_FOR_IN,                          /**< for-in context */
+#if ENABLED (JERRY_ES2015_FOR_OF)
+  VM_CONTEXT_FOR_OF,                          /**< for-of context */
+#endif /* ENABLED (JERRY_ES2015_FOR_OF) */
 } vm_stack_context_type_t;
 
 ecma_value_t *vm_stack_context_abort (vm_frame_ctx_t *frame_ctx_p, ecma_value_t *vm_stack_top_p);

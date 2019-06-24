@@ -14,6 +14,7 @@
  */
 
 #include "ecma-alloc.h"
+#include "ecma-conversion.h"
 #include "ecma-gc.h"
 #include "ecma-globals.h"
 #include "ecma-helpers.h"
@@ -200,7 +201,7 @@ ecma_new_ecma_string_from_magic_string_ex_id (lit_magic_string_ex_id_t id) /**< 
   return string_desc_p;
 } /* ecma_new_ecma_string_from_magic_string_ex_id */
 
-#ifndef CONFIG_DISABLE_ES2015_SYMBOL_BUILTIN
+#if ENABLED (JERRY_ES2015_BUILTIN_SYMBOL)
 /**
  * Allocate new ecma-string and fill it with reference to the symbol descriptor
  *
@@ -234,7 +235,42 @@ ecma_prop_name_is_symbol (ecma_string_t *string_p) /**< ecma-string */
   return (!ECMA_IS_DIRECT_STRING (string_p)
           && ECMA_STRING_GET_CONTAINER (string_p) == ECMA_STRING_CONTAINER_SYMBOL);
 } /* ecma_prop_name_is_symbol */
-#endif /* !CONFIG_DISABLE_ES2015_SYMBOL_BUILTIN */
+#endif /* ENABLED (JERRY_ES2015_BUILTIN_SYMBOL) */
+
+#if ENABLED (JERRY_ES2015_BUILTIN_MAP)
+/**
+ * Allocate new ecma-string and fill it with reference to the map key descriptor
+ *
+ * @return pointer to ecma-string descriptor
+ */
+ecma_string_t *
+ecma_new_map_key_string (ecma_value_t value) /**< non prop-name ecma-value */
+{
+  JERRY_ASSERT (!ecma_is_value_prop_name (value));
+
+  ecma_string_t *string_p = ecma_alloc_string ();
+  string_p->refs_and_container = ECMA_STRING_REF_ONE | ECMA_STRING_CONTAINER_MAP_KEY;
+  string_p->u.value = ecma_copy_value_if_not_object (value);
+  string_p->hash = (lit_string_hash_t) (ecma_is_value_simple (value) ? value : 0);
+
+  return string_p;
+} /* ecma_new_map_key_string */
+
+/**
+ * Check whether an ecma-string contains a map key string
+ *
+ * @return true - if the ecma-string contains a map key string
+ *         false - otherwise
+ */
+bool
+ecma_prop_name_is_map_key (ecma_string_t *string_p) /**< ecma-string */
+{
+  JERRY_ASSERT (string_p != NULL);
+
+  return (!ECMA_IS_DIRECT_STRING (string_p)
+          && ECMA_STRING_GET_CONTAINER (string_p) == ECMA_STRING_CONTAINER_MAP_KEY);
+} /* ecma_prop_name_is_map_key */
+#endif /* ENABLED (JERRY_ES2015_BUILTIN_MAP) */
 
 /**
  * Allocate new ecma-string and fill it with characters from the utf8 string
@@ -439,6 +475,24 @@ ecma_new_ecma_string_from_code_unit (ecma_char_t code_unit) /**< code unit */
 
   return ecma_new_ecma_string_from_utf8 (lit_utf8_bytes, bytes_size);
 } /* ecma_new_ecma_string_from_code_unit */
+
+#if ENABLED (JERRY_ES2015_BUILTIN_ITERATOR)
+/**
+ * Allocate new ecma-string and fill it with cesu-8 character which represents specified code units
+ *
+ * @return pointer to ecma-string descriptor
+ */
+ecma_string_t *
+ecma_new_ecma_string_from_code_units (ecma_char_t first_code_unit, /**< code unit */
+                                      ecma_char_t second_code_unit) /**< code unit */
+{
+  lit_utf8_byte_t lit_utf8_bytes[2 * LIT_UTF8_MAX_BYTES_IN_CODE_UNIT];
+  lit_utf8_size_t bytes_size = lit_code_unit_to_utf8 (first_code_unit, lit_utf8_bytes);
+  bytes_size += lit_code_unit_to_utf8 (second_code_unit, lit_utf8_bytes + bytes_size);
+
+  return ecma_new_ecma_string_from_utf8 (lit_utf8_bytes, bytes_size);
+} /* ecma_new_ecma_string_from_code_units */
+#endif /* ENABLED (JERRY_ES2015_BUILTIN_ITERATOR) */
 
 /**
  * Allocate new ecma-string and fill it with ecma-number
@@ -977,13 +1031,20 @@ ecma_deref_ecma_string (ecma_string_t *string_p) /**< ecma-string */
       ecma_free_value (string_p->u.lit_number);
       break;
     }
-#ifndef CONFIG_DISABLE_ES2015_SYMBOL_BUILTIN
+#if ENABLED (JERRY_ES2015_BUILTIN_SYMBOL)
     case ECMA_STRING_CONTAINER_SYMBOL:
     {
       ecma_free_value (string_p->u.symbol_descriptor);
       break;
     }
-#endif /* !CONFIG_DISABLE_ES2015_SYMBOL_BUILTIN */
+#endif /* ENABLED (JERRY_ES2015_BUILTIN_SYMBOL) */
+#if ENABLED (JERRY_ES2015_BUILTIN_MAP)
+    case ECMA_STRING_CONTAINER_MAP_KEY:
+    {
+      ecma_free_value_if_not_object (string_p->u.value);
+      break;
+    }
+#endif /* ENABLED (JERRY_ES2015_BUILTIN_MAP) */
     default:
     {
       JERRY_ASSERT (ECMA_STRING_GET_CONTAINER (string_p) == ECMA_STRING_CONTAINER_UINT32_IN_DESC
@@ -1819,12 +1880,12 @@ ecma_compare_ecma_strings (const ecma_string_t *string1_p, /**< ecma-string */
     return false;
   }
 
-#ifndef CONFIG_DISABLE_ES2015_SYMBOL_BUILTIN
+#if ENABLED (JERRY_ES2015_BUILTIN_SYMBOL)
   if (string1_container == ECMA_STRING_CONTAINER_SYMBOL)
   {
     return false;
   }
-#endif /* !CONFIG_DISABLE_ES2015_SYMBOL_BUILTIN */
+#endif /* ENABLED (JERRY_ES2015_BUILTIN_SYMBOL) */
 
   if (string1_container >= ECMA_STRING_CONTAINER_UINT32_IN_DESC)
   {
@@ -1864,6 +1925,13 @@ ecma_compare_ecma_non_direct_strings (const ecma_string_t *string1_p, /**< ecma-
   {
     return false;
   }
+
+#if ENABLED (JERRY_ES2015_BUILTIN_MAP)
+  if (string1_container == ECMA_STRING_CONTAINER_MAP_KEY)
+  {
+    return ecma_op_same_value_zero (string1_p->u.value, string2_p->u.value);
+  }
+#endif /* ENABLED (JERRY_ES2015_BUILTIN_MAP) */
 
   if (string1_container >= ECMA_STRING_CONTAINER_UINT32_IN_DESC)
   {

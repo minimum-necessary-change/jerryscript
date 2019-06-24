@@ -102,13 +102,22 @@ handler_throw_test (const jerry_value_t func_obj_val, /**< function object */
 } /* handler_throw_test */
 
 static void
-handler_construct_freecb (void *native_p)
+handler_construct_1_freecb (void *native_p)
+{
+  TEST_ASSERT ((uintptr_t) native_p == (uintptr_t) 0x0000000000000000ull);
+  printf ("ok object free callback\n");
+
+  test_api_is_free_callback_was_called = true;
+} /* handler_construct_1_freecb */
+
+static void
+handler_construct_2_freecb (void *native_p)
 {
   TEST_ASSERT ((uintptr_t) native_p == (uintptr_t) 0x0012345678abcdefull);
   printf ("ok object free callback\n");
 
   test_api_is_free_callback_was_called = true;
-} /* handler_construct_freecb */
+} /* handler_construct_2_freecb */
 
 
 /**
@@ -125,8 +134,8 @@ handler_construct_freecb (void *native_p)
     .free_cb = (jerry_object_native_free_callback_t) native_free_cb \
   }
 
-JERRY_DEFINE_NATIVE_HANDLE_INFO (bind1, handler_construct_freecb);
-JERRY_DEFINE_NATIVE_HANDLE_INFO (bind2, handler_construct_freecb);
+JERRY_DEFINE_NATIVE_HANDLE_INFO (bind1, handler_construct_1_freecb);
+JERRY_DEFINE_NATIVE_HANDLE_INFO (bind2, handler_construct_2_freecb);
 JERRY_DEFINE_NATIVE_HANDLE_INFO (bind3, NULL);
 
 static jerry_value_t
@@ -145,24 +154,37 @@ handler_construct (const jerry_value_t func_obj_val, /**< function object */
   TEST_ASSERT (jerry_get_boolean_value (args_p[0]) == true);
 
   jerry_value_t field_name = jerry_create_string ((jerry_char_t *) "value_field");
-  jerry_set_property (this_val, field_name, args_p[0]);
+  jerry_value_t res = jerry_set_property (this_val, field_name, args_p[0]);
+  TEST_ASSERT (!jerry_value_is_error (res));
+  TEST_ASSERT (jerry_value_is_boolean (res) && jerry_get_boolean_value (res));
+  jerry_release_value (res);
   jerry_release_value (field_name);
 
+  /* Set a native pointer. */
   jerry_set_object_native_pointer (this_val,
                                    (void *) 0x0000000000000000ull,
                                    &JERRY_NATIVE_HANDLE_INFO_FOR_CTYPE (bind1));
 
+  /* Check that the native pointer was set. */
   void *ptr = NULL;
-  const jerry_object_native_info_t *out_info_p;
-  bool is_ok = jerry_get_object_native_pointer (this_val, &ptr, &out_info_p);
+  bool is_ok = jerry_get_object_native_pointer (this_val, &ptr, &JERRY_NATIVE_HANDLE_INFO_FOR_CTYPE (bind1));
   TEST_ASSERT (is_ok
-               && (uintptr_t) ptr == (uintptr_t) 0x0000000000000000ull
-               && out_info_p == &JERRY_NATIVE_HANDLE_INFO_FOR_CTYPE (bind1));
-  /* check if setting handle for second time is handled correctly */
+               && (uintptr_t) ptr == (uintptr_t) 0x0000000000000000ull);
+
+  /* Set a second native pointer. */
   jerry_set_object_native_pointer (this_val,
                                    (void *) 0x0012345678abcdefull,
                                    &JERRY_NATIVE_HANDLE_INFO_FOR_CTYPE (bind2));
 
+  /* Check that a second native pointer was set. */
+  is_ok = jerry_get_object_native_pointer (this_val, &ptr, &JERRY_NATIVE_HANDLE_INFO_FOR_CTYPE (bind2));
+  TEST_ASSERT (is_ok
+               && (uintptr_t) ptr == (uintptr_t) 0x0012345678abcdefull);
+
+  /* Check that the first native pointer is still set. */
+  is_ok = jerry_get_object_native_pointer (this_val, &ptr, &JERRY_NATIVE_HANDLE_INFO_FOR_CTYPE (bind1));
+  TEST_ASSERT (is_ok
+               && (uintptr_t) ptr == (uintptr_t) 0x0000000000000000ull);
   return jerry_create_boolean (true);
 } /* handler_construct */
 
@@ -531,16 +553,13 @@ main (void)
   jerry_release_value (external_construct_val);
 
   void *ptr = NULL;
-  const jerry_object_native_info_t *out_info_p;
-  is_ok = jerry_get_object_native_pointer (res, &ptr, &out_info_p);
-  TEST_ASSERT (is_ok
-               && (uintptr_t) ptr == (uintptr_t) 0x0012345678abcdefull
-               && out_info_p == &JERRY_NATIVE_HANDLE_INFO_FOR_CTYPE (bind2));
-
-  /* Passing NULL for out_info_p is allowed. */
-  is_ok = jerry_get_object_native_pointer (res, &ptr, NULL);
+  is_ok = jerry_get_object_native_pointer (res, &ptr, &JERRY_NATIVE_HANDLE_INFO_FOR_CTYPE (bind2));
   TEST_ASSERT (is_ok
                && (uintptr_t) ptr == (uintptr_t) 0x0012345678abcdefull);
+
+  /* Passing NULL for info_p is allowed. */
+  is_ok = jerry_get_object_native_pointer (res, &ptr, NULL);
+  TEST_ASSERT (!is_ok);
 
   jerry_release_value (res);
 
@@ -630,7 +649,10 @@ main (void)
   TEST_ASSERT (jerry_get_array_length (array_obj_val) == 10);
 
   jerry_value_t v_in = jerry_create_number (10.5);
-  jerry_set_property_by_index (array_obj_val, 5, v_in);
+  res = jerry_set_property_by_index (array_obj_val, 5, v_in);
+  TEST_ASSERT (!jerry_value_is_error (res));
+  TEST_ASSERT (jerry_value_is_boolean (res) && jerry_get_boolean_value (res));
+  jerry_release_value (res);
   jerry_value_t v_out = jerry_get_property_by_index (array_obj_val, 5);
 
   TEST_ASSERT (jerry_value_is_number (v_out)
@@ -895,7 +917,10 @@ main (void)
     char check_value[] = "{\"name\":\"John\"}";
     jerry_value_t key = jerry_create_string ((const jerry_char_t *) "name");
     jerry_value_t value = jerry_create_string ((const jerry_char_t *) "John");
-    jerry_set_property (obj, key, value);
+    res = jerry_set_property (obj, key, value);
+    TEST_ASSERT (!jerry_value_is_error (res));
+    TEST_ASSERT (jerry_value_is_boolean (res) && jerry_get_boolean_value (res));
+    jerry_release_value (res);
     jerry_value_t stringified = jerry_json_stringify (obj);
     TEST_ASSERT (jerry_value_is_string (stringified));
     char buff[jerry_get_string_length (stringified)];

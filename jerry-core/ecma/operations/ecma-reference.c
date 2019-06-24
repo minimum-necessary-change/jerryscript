@@ -48,13 +48,13 @@ ecma_op_resolve_reference_base (ecma_object_t *lex_env_p, /**< starting lexical 
 
   while (lex_env_iter_p != NULL)
   {
-#ifndef CONFIG_DISABLE_ES2015_CLASS
+#if ENABLED (JERRY_ES2015_CLASS)
     if (ecma_get_lex_env_type (lex_env_iter_p) == ECMA_LEXICAL_ENVIRONMENT_SUPER_OBJECT_BOUND)
     {
       lex_env_iter_p = ecma_get_lex_env_outer_reference (lex_env_iter_p);
       JERRY_ASSERT (lex_env_iter_p != NULL);
     }
-#endif /* !CONFIG_DISABLE_ES2015_CLASS */
+#endif /* ENABLED (JERRY_ES2015_CLASS) */
 
     if (ecma_op_has_binding (lex_env_iter_p, name_p))
     {
@@ -67,7 +67,7 @@ ecma_op_resolve_reference_base (ecma_object_t *lex_env_p, /**< starting lexical 
   return NULL;
 } /* ecma_op_resolve_reference_base */
 
-#ifndef CONFIG_DISABLE_ES2015_CLASS
+#if ENABLED (JERRY_ES2015_CLASS)
 /**
  * Resolve super reference.
  *
@@ -88,7 +88,7 @@ ecma_op_resolve_super_reference_value (ecma_object_t *lex_env_p) /**< starting l
     lex_env_p = ecma_get_lex_env_outer_reference (lex_env_p);
   }
 } /* ecma_op_resolve_super_reference_value */
-#endif /* !CONFIG_DISABLE_ES2015_CLASS */
+#endif /* ENABLED (JERRY_ES2015_CLASS) */
 
 /**
  * Resolve value corresponding to reference.
@@ -118,7 +118,7 @@ ecma_op_resolve_reference_value (ecma_object_t *lex_env_p, /**< starting lexical
     {
       ecma_object_t *binding_obj_p = ecma_get_lex_env_binding_object (lex_env_p);
 
-#ifndef CONFIG_ECMA_LCACHE_DISABLE
+#if ENABLED (JERRY_LCACHE)
       ecma_property_t *property_p = ecma_lcache_lookup (binding_obj_p, name_p);
 
       if (property_p != NULL)
@@ -142,7 +142,7 @@ ecma_op_resolve_reference_value (ecma_object_t *lex_env_p, /**< starting lexical
         ecma_value_t base_value = ecma_make_object_value (binding_obj_p);
         return ecma_op_function_call (getter_p, base_value, NULL, 0);
       }
-#endif /* !CONFIG_ECMA_LCACHE_DISABLE */
+#endif /* ENABLED (JERRY_LCACHE) */
 
       ecma_value_t prop_value = ecma_op_object_find (binding_obj_p, name_p);
 
@@ -153,24 +153,24 @@ ecma_op_resolve_reference_value (ecma_object_t *lex_env_p, /**< starting lexical
     }
     else
     {
-#ifndef CONFIG_DISABLE_ES2015_CLASS
+#if ENABLED (JERRY_ES2015_CLASS)
       JERRY_ASSERT (lex_env_type == ECMA_LEXICAL_ENVIRONMENT_SUPER_OBJECT_BOUND);
-#else /* CONFIG_DISABLE_ES2015_CLASS */
+#else /* !ENABLED (JERRY_ES2015_CLASS) */
       JERRY_UNREACHABLE ();
-#endif /* !CONFIG_DISABLE_ES2015_CLASS */
+#endif /* ENABLED (JERRY_ES2015_CLASS) */
     }
 
     lex_env_p = ecma_get_lex_env_outer_reference (lex_env_p);
   }
 
-#ifdef JERRY_ENABLE_ERROR_MESSAGES
+#if ENABLED (JERRY_ERROR_MESSAGES)
   ecma_value_t name_val = ecma_make_string_value (name_p);
   ecma_value_t error_value = ecma_raise_standard_error_with_format (ECMA_ERROR_REFERENCE,
                                                                     "% is not defined",
                                                                     name_val);
-#else /* !JERRY_ENABLE_ERROR_MESSAGES */
+#else /* ENABLED (JERRY_ERROR_MESSAGES) */
   ecma_value_t error_value = ecma_raise_reference_error (NULL);
-#endif /* JERRY_ENABLE_ERROR_MESSAGES */
+#endif /* !ENABLED (JERRY_ERROR_MESSAGES) */
   return error_value;
 } /* ecma_op_resolve_reference_value */
 

@@ -36,11 +36,6 @@
 #define VM_MINUS_EQUAL_U16(base, value) (base) = (uint16_t) ((base) - (value))
 
 /**
- * Instruction counter / position
- */
-typedef const uint8_t *vm_instr_counter_t;
-
-/**
  * Context of interpreter, related to a JS stack frame
  */
 typedef struct vm_frame_ctx_t
@@ -52,13 +47,15 @@ typedef struct vm_frame_ctx_t
   ecma_value_t *stack_top_p;                          /**< stack top pointer */
   ecma_value_t *literal_start_p;                      /**< literal list start pointer */
   ecma_object_t *lex_env_p;                           /**< current lexical environment */
+#if defined (JERRY_DEBUGGER) || ENABLED (JERRY_LINE_INFO)
   struct vm_frame_ctx_t *prev_context_p;              /**< previous context */
+#endif /* defined (JERRY_DEBUGGER) || ENABLED (JERRY_LINE_INFO) */
   ecma_value_t this_binding;                          /**< this binding */
   ecma_value_t block_result;                          /**< block result */
-#ifdef JERRY_ENABLE_LINE_INFO
+#if ENABLED (JERRY_LINE_INFO)
   ecma_value_t resource_name;                         /**< current resource name (usually a file name) */
   uint32_t current_line;                              /**< currently executed line */
-#endif /* JERRY_ENABLE_LINE_INFO */
+#endif /* ENABLED (JERRY_LINE_INFO) */
   uint16_t context_depth;                             /**< current context depth */
   uint8_t is_eval_code;                               /**< eval mode flag */
   uint8_t call_operation;                             /**< perform a call or construct operation */

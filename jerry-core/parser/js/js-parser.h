@@ -79,25 +79,28 @@ typedef enum
   PARSER_ERR_MULTIPLE_DEFAULTS_NOT_ALLOWED,           /**< multiple default cases are not allowed */
   PARSER_ERR_DEFAULT_NOT_IN_SWITCH,                   /**< default statement is not in switch block */
   PARSER_ERR_CASE_NOT_IN_SWITCH,                      /**< case statement is not in switch block */
-#ifndef CONFIG_DISABLE_ES2015_CLASS
+#if ENABLED (JERRY_ES2015_CLASS)
   PARSER_ERR_MULTIPLE_CLASS_CONSTRUCTORS,             /**< multiple class constructor */
   PARSER_ERR_CLASS_CONSTRUCTOR_AS_ACCESSOR,           /**< class constructor cannot be an accessor */
   PARSER_ERR_CLASS_STATIC_PROTOTYPE,                  /**< static method name 'prototype' is not allowed */
   PARSER_ERR_UNEXPECTED_SUPER_REFERENCE,              /**< unexpected super keyword */
-#endif /* !CONFIG_DISABLE_ES2015_CLASS */
+#endif /* ENABLED (JERRY_ES2015_CLASS) */
 
   PARSER_ERR_LEFT_PAREN_EXPECTED,                     /**< left paren expected */
   PARSER_ERR_LEFT_BRACE_EXPECTED,                     /**< left brace expected */
   PARSER_ERR_RIGHT_PAREN_EXPECTED,                    /**< right paren expected */
   PARSER_ERR_RIGHT_SQUARE_EXPECTED,                   /**< right square expected */
 
-#ifndef CONFIG_DISABLE_ES2015_TEMPLATE_STRINGS
+#if ENABLED (JERRY_ES2015_TEMPLATE_STRINGS)
   PARSER_ERR_RIGHT_BRACE_EXPECTED,                    /**< right brace expected */
-#endif /* !CONFIG_DISABLE_ES2015_TEMPLATE_STRINGS */
+#endif /* ENABLED (JERRY_ES2015_TEMPLATE_STRINGS) */
   PARSER_ERR_COLON_EXPECTED,                          /**< colon expected */
   PARSER_ERR_COLON_FOR_CONDITIONAL_EXPECTED,          /**< colon expected for conditional expression */
   PARSER_ERR_SEMICOLON_EXPECTED,                      /**< semicolon expected */
   PARSER_ERR_IN_EXPECTED,                             /**< in keyword expected */
+#if ENABLED (JERRY_ES2015_FOR_OF)
+  PARSER_ERR_OF_EXPECTED,                             /**< of keyword expected */
+#endif /* ENABLED (JERRY_ES2015_FOR_OF) */
   PARSER_ERR_WHILE_EXPECTED,                          /**< while expected for do-while loop */
   PARSER_ERR_CATCH_FINALLY_EXPECTED,                  /**< catch or finally expected */
   PARSER_ERR_ARRAY_ITEM_SEPARATOR_EXPECTED,           /**< array item separator expected */
@@ -120,30 +123,30 @@ typedef enum
   PARSER_ERR_INVALID_RETURN,                          /**< return must be inside a function */
   PARSER_ERR_INVALID_RIGHT_SQUARE,                    /**< right square must terminate a block */
   PARSER_ERR_DUPLICATED_LABEL,                        /**< duplicated label */
-#if (!defined (CONFIG_DISABLE_ES2015_FUNCTION_PARAMETER_INITIALIZER) \
-     || !defined (CONFIG_DISABLE_ES2015_FUNCTION_REST_PARAMETER))
+#if ENABLED (JERRY_ES2015_FUNCTION_PARAMETER_INITIALIZER) || ENABLED (JERRY_ES2015_FUNCTION_REST_PARAMETER)
   PARSER_ERR_DUPLICATED_ARGUMENT_NAMES,               /**< duplicated argument names */
-#endif /* (!defined (CONFIG_DISABLE_ES2015_FUNCTION_PARAMETER_INITIALIZER)
-           || !defined (CONFIG_DISABLE_ES2015_FUNCTION_REST_PARAMETER)) */
-#ifndef CONFIG_DISABLE_ES2015_FUNCTION_REST_PARAMETER
+#endif /* ENABLED (JERRY_ES2015_FUNCTION_PARAMETER_INITIALIZER) || ENABLED (JERRY_ES2015_FUNCTION_REST_PARAMETER) */
+#if ENABLED (JERRY_ES2015_FUNCTION_REST_PARAMETER)
   PARSER_ERR_FORMAL_PARAM_AFTER_REST_PARAMETER,       /**< formal parameter after rest parameter */
   PARSER_ERR_REST_PARAMETER_DEFAULT_INITIALIZER,      /**< rest parameter default initializer */
-#endif /* !CONFIG_DISABLE_ES2015_FUNCTION_REST_PARAMETER */
+#endif /* ENABLED (JERRY_ES2015_FUNCTION_REST_PARAMETER) */
   PARSER_ERR_OBJECT_PROPERTY_REDEFINED,               /**< property of object literal redefined */
 
-#ifndef CONFIG_DISABLE_ES2015_MODULE_SYSTEM
-  PARSER_ERR_RIGHT_PAREN_COMMA_FROM_EXPECTED,         /**< rigth paren or comma or from expected */
+#if ENABLED (JERRY_ES2015_MODULE_SYSTEM)
+  PARSER_ERR_FILE_NOT_FOUND,                          /**< file not found*/
   PARSER_ERR_FROM_EXPECTED,                           /**< from expected */
+  PARSER_ERR_FROM_COMMA_EXPECTED,                     /**< from or comma expected */
+  PARSER_ERR_AS_EXPECTED,                             /**< as expected */
   PARSER_ERR_STRING_EXPECTED,                         /**< string literal expected */
-  PARSER_ERR_MODULE_REQUEST_NOT_FOUND,                /**< not found imported variable in module */
-  PARSER_ERR_FILE_NOT_FOUND,                          /**< not found given file in the import statement */
-  PARSER_ERR_NOT_IMPLEMENTED,                         /**< feature not implemented yet */
-  PARSER_ERR_MODULE_REQUEST_LIMIT_REACHED,            /**< maximum number of requests reached */
   PARSER_ERR_MODULE_UNEXPECTED,                       /**< unexpected import or export statement */
-  PARSER_ERR_LEFT_PAREN_MULTIPLY_LITERAL_EXPECTED,    /**< left paren or multiply or literal expected */
-#endif /* !CONFIG_DISABLE_ES2015_MODULE_SYSTEM */
+  PARSER_ERR_LEFT_BRACE_MULTIPLY_LITERAL_EXPECTED,    /**< left brace or multiply or literal expected */
+  PARSER_ERR_LEFT_BRACE_MULTIPLY_EXPECTED,            /**< left brace or multiply expected */
+  PARSER_ERR_RIGHT_BRACE_COMMA_EXPECTED,              /**< right brace or comma expected */
+  PARSER_ERR_DUPLICATED_EXPORT_IDENTIFIER,            /**< duplicated export identifier name */
+  PARSER_ERR_DUPLICATED_IMPORT_BINDING,               /**< duplicated import binding name */
+#endif /* ENABLED (JERRY_ES2015_MODULE_SYSTEM) */
 
-  PARSER_ERR_NON_STRICT_ARG_DEFINITION               /**< non-strict argument definition */
+  PARSER_ERR_NON_STRICT_ARG_DEFINITION                /**< non-strict argument definition */
 } parser_error_t;
 
 /**
@@ -166,9 +169,9 @@ ecma_value_t parser_parse_script (const uint8_t *arg_list_p, size_t arg_list_siz
                                   const uint8_t *source_p, size_t source_size,
                                   uint32_t parse_opts, ecma_compiled_code_t **bytecode_data_p);
 
-#ifdef JERRY_ENABLE_ERROR_MESSAGES
+#if ENABLED (JERRY_ERROR_MESSAGES)
 const char *parser_error_to_string (parser_error_t);
-#endif /* JERRY_ENABLE_ERROR_MESSAGES */
+#endif /* ENABLED (JERRY_ERROR_MESSAGES) */
 
 /**
  * @}

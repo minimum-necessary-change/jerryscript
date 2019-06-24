@@ -16,7 +16,7 @@
 #ifndef RE_BYTECODE_H
 #define RE_BYTECODE_H
 
-#ifndef CONFIG_DISABLE_REGEXP_BUILTIN
+#if ENABLED (JERRY_BUILTIN_REGEXP)
 
 #include "ecma-globals.h"
 
@@ -114,9 +114,9 @@ void re_insert_opcode (re_bytecode_ctx_t *bc_ctx_p, uint32_t offset, re_opcode_t
 void re_insert_u32 (re_bytecode_ctx_t *bc_ctx_p, uint32_t offset, uint32_t value);
 void re_bytecode_list_insert (re_bytecode_ctx_t *bc_ctx_p, size_t offset, uint8_t *bytecode_p, size_t length);
 
-#ifdef REGEXP_DUMP_BYTE_CODE
+#if ENABLED (JERRY_REGEXP_DUMP_BYTE_CODE)
 void re_dump_bytecode (re_bytecode_ctx_t *bc_ctx);
-#endif /* REGEXP_DUMP_BYTE_CODE */
+#endif /* ENABLED (JERRY_REGEXP_DUMP_BYTE_CODE) */
 
 /**
  * @}
@@ -124,5 +124,5 @@ void re_dump_bytecode (re_bytecode_ctx_t *bc_ctx);
  * @}
  */
 
-#endif /* !CONFIG_DISABLE_REGEXP_BUILTIN */
+#endif /* ENABLED (JERRY_BUILTIN_REGEXP) */
 #endif /* !RE_BYTECODE_H */

@@ -24,7 +24,7 @@
 #include "re-compiler.h"
 #include "re-parser.h"
 
-#ifndef CONFIG_DISABLE_REGEXP_BUILTIN
+#if ENABLED (JERRY_BUILTIN_REGEXP)
 
 /** \addtogroup parser Parser
  * @{
@@ -629,12 +629,12 @@ re_compile_bytecode (const re_compiled_code_t **out_bytecode_p, /**< [out] point
   }
   else
   {
-#ifdef REGEXP_DUMP_BYTE_CODE
+#if ENABLED (JERRY_REGEXP_DUMP_BYTE_CODE)
     if (JERRY_CONTEXT (jerry_init_flags) & ECMA_INIT_SHOW_REGEXP_OPCODES)
     {
       re_dump_bytecode (&bc_ctx);
     }
-#endif /* REGEXP_DUMP_BYTE_CODE */
+#endif /* ENABLED (JERRY_REGEXP_DUMP_BYTE_CODE) */
 
     /* The RegExp bytecode contains at least a RE_OP_SAVE_AT_START opdoce, so it cannot be NULL. */
     JERRY_ASSERT (bc_ctx.block_start_p != NULL);
@@ -675,4 +675,4 @@ re_compile_bytecode (const re_compiled_code_t **out_bytecode_p, /**< [out] point
  * @}
  */
 
-#endif /* !CONFIG_DISABLE_REGEXP_BUILTIN */
+#endif /* ENABLED (JERRY_BUILTIN_REGEXP) */

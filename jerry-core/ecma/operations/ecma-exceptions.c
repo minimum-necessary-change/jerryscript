@@ -25,9 +25,9 @@
 #include "jcontext.h"
 #include "jrt.h"
 
-#ifdef JERRY_ENABLE_LINE_INFO
+#if ENABLED (JERRY_LINE_INFO)
 #include "vm.h"
-#endif /* JERRY_ENABLE_LINE_INFO */
+#endif /* ENABLED (JERRY_LINE_INFO) */
 
 /** \addtogroup ecma ECMA
  * @{
@@ -53,14 +53,14 @@ const ecma_error_mapping_t ecma_error_mappings[] =
 #define ERROR_ELEMENT(TYPE, ID) { TYPE, ID }
   ERROR_ELEMENT (ECMA_ERROR_COMMON,      ECMA_BUILTIN_ID_ERROR_PROTOTYPE),
 
-#ifndef CONFIG_DISABLE_ERROR_BUILTINS
+#if ENABLED (JERRY_BUILTIN_ERRORS)
   ERROR_ELEMENT (ECMA_ERROR_EVAL,        ECMA_BUILTIN_ID_EVAL_ERROR_PROTOTYPE),
   ERROR_ELEMENT (ECMA_ERROR_RANGE,       ECMA_BUILTIN_ID_RANGE_ERROR_PROTOTYPE),
   ERROR_ELEMENT (ECMA_ERROR_REFERENCE,   ECMA_BUILTIN_ID_REFERENCE_ERROR_PROTOTYPE),
   ERROR_ELEMENT (ECMA_ERROR_TYPE,        ECMA_BUILTIN_ID_TYPE_ERROR_PROTOTYPE),
   ERROR_ELEMENT (ECMA_ERROR_URI,         ECMA_BUILTIN_ID_URI_ERROR_PROTOTYPE),
   ERROR_ELEMENT (ECMA_ERROR_SYNTAX,      ECMA_BUILTIN_ID_SYNTAX_ERROR_PROTOTYPE),
-#endif /* !CONFIG_DISABLE_ERROR_BUILTINS */
+#endif /* ENABLED (JERRY_BUILTIN_ERRORS) */
 
 #undef ERROR_ELEMENT
 };
@@ -78,7 +78,7 @@ const ecma_error_mapping_t ecma_error_mappings[] =
 ecma_object_t *
 ecma_new_standard_error (ecma_standard_error_t error_type) /**< native error type */
 {
-#ifndef CONFIG_DISABLE_ERROR_BUILTINS
+#if ENABLED (JERRY_BUILTIN_ERRORS)
   ecma_builtin_id_t prototype_id = ECMA_BUILTIN_ID__COUNT;
 
   switch (error_type)
@@ -130,7 +130,7 @@ ecma_new_standard_error (ecma_standard_error_t error_type) /**< native error typ
 #else
   JERRY_UNUSED (error_type);
   ecma_builtin_id_t prototype_id = ECMA_BUILTIN_ID_ERROR_PROTOTYPE;
-#endif /* !CONFIG_DISABLE_ERROR_BUILTINS */
+#endif /* ENABLED (JERRY_BUILTIN_ERRORS) */
 
   ecma_object_t *prototype_obj_p = ecma_builtin_get (prototype_id);
 
@@ -140,7 +140,7 @@ ecma_new_standard_error (ecma_standard_error_t error_type) /**< native error typ
 
   ((ecma_extended_object_t *) new_error_obj_p)->u.class_prop.class_id = LIT_MAGIC_STRING_ERROR_UL;
 
-#ifdef JERRY_ENABLE_LINE_INFO
+#if ENABLED (JERRY_LINE_INFO)
   /* The "stack" identifier is not a magic string. */
   const char * const stack_id_p = "stack";
 
@@ -156,7 +156,7 @@ ecma_new_standard_error (ecma_standard_error_t error_type) /**< native error typ
 
   prop_value_p->value = backtrace_value;
   ecma_deref_object (ecma_get_object_from_value (backtrace_value));
-#endif /* JERRY_ENABLE_LINE_INFO */
+#endif /* ENABLED (JERRY_LINE_INFO) */
 
   return new_error_obj_p;
 } /* ecma_new_standard_error */
@@ -240,7 +240,7 @@ ecma_raise_standard_error (ecma_standard_error_t error_type, /**< error type */
   return ECMA_VALUE_ERROR;
 } /* ecma_raise_standard_error */
 
-#ifdef JERRY_ENABLE_ERROR_MESSAGES
+#if ENABLED (JERRY_ERROR_MESSAGES)
 
 /**
  * Raise a standard ecma-error with the given format string and arguments.
@@ -290,13 +290,13 @@ ecma_raise_standard_error_with_format (ecma_standard_error_t error_type, /**< er
         lit_magic_string_id_t class_name = ecma_object_get_class_name (arg_object_p);
         arg_string_p = ecma_get_magic_string (class_name);
       }
-#ifndef CONFIG_DISABLE_ES2015_SYMBOL_BUILTIN
+#if ENABLED (JERRY_ES2015_BUILTIN_SYMBOL)
       else if (ecma_is_value_symbol (arg_val))
       {
         ecma_value_t symbol_desc_value = ecma_get_symbol_descriptive_string (arg_val);
         arg_string_p = ecma_get_string_from_value (symbol_desc_value);
       }
-#endif /* !CONFIG_DISABLE_ES2015_SYMBOL_BUILTIN */
+#endif /* ENABLED (JERRY_ES2015_BUILTIN_SYMBOL) */
       else
       {
         ecma_value_t str_val = ecma_op_to_string (arg_val);
@@ -335,7 +335,7 @@ ecma_raise_standard_error_with_format (ecma_standard_error_t error_type, /**< er
   return ECMA_VALUE_ERROR;
 } /* ecma_raise_standard_error_with_format */
 
-#endif /* JERRY_ENABLE_ERROR_MESSAGES */
+#endif /* ENABLED (JERRY_ERROR_MESSAGES) */
 
 /**
  * Raise a common error with the given message.

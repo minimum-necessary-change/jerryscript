@@ -19,7 +19,7 @@
 
 #include "ecma-builtin-helpers-macro-defines.inc.h"
 
-#ifndef CONFIG_DISABLE_ES2015_MAP_BUILTIN
+#if ENABLED (JERRY_ES2015_BUILTIN_MAP)
 
 /* Object properties:
  *  (property name, object pointer getter) */
@@ -29,17 +29,18 @@ OBJECT_VALUE (LIT_MAGIC_STRING_CONSTRUCTOR,
               ECMA_BUILTIN_ID_MAP,
               ECMA_PROPERTY_CONFIGURABLE_WRITABLE)
 
-#ifndef CONFIG_DISABLE_ES2015_SYMBOL_BUILTIN
+#if ENABLED (JERRY_ES2015_BUILTIN_SYMBOL)
 /* ECMA-262 v6, 23.1.3.13 */
 STRING_VALUE (LIT_GLOBAL_SYMBOL_TO_STRING_TAG,
               LIT_MAGIC_STRING_MAP_UL,
               ECMA_PROPERTY_FLAG_CONFIGURABLE)
-#endif /* !CONFIG_DISABLE_ES2015_SYMBOL_BUILTIN */
+#endif /* ENABLED (JERRY_ES2015_BUILTIN_SYMBOL) */
 
 /* Routine properties:
  *  (property name, C routine name, arguments number or NON_FIXED, value of the routine's length property) */
 ROUTINE (LIT_MAGIC_STRING_CLEAR, ecma_builtin_map_prototype_object_clear, 0, 0)
 ROUTINE (LIT_MAGIC_STRING_DELETE, ecma_builtin_map_prototype_object_delete, 1, 1)
+ROUTINE (LIT_MAGIC_STRING_FOR_EACH_UL, ecma_builtin_map_prototype_object_foreach, 2, 1)
 ROUTINE (LIT_MAGIC_STRING_GET, ecma_builtin_map_prototype_object_get, 1, 1)
 ROUTINE (LIT_MAGIC_STRING_HAS, ecma_builtin_map_prototype_object_has, 1, 1)
 ROUTINE (LIT_MAGIC_STRING_SET, ecma_builtin_map_prototype_object_set, 2, 2)
@@ -49,6 +50,6 @@ ACCESSOR_READ_ONLY (LIT_MAGIC_STRING_SIZE,
                     ecma_builtin_map_prototype_object_size_getter,
                     ECMA_PROPERTY_FIXED)
 
-#endif /* !CONFIG_DISABLE_ES2015_MAP_BUILTIN */
+#endif /* ENABLED (JERRY_ES2015_BUILTIN_MAP) */
 
 #include "ecma-builtin-helpers-macro-undefs.inc.h"

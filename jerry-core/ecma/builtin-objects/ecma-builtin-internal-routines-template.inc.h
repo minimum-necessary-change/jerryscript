@@ -98,6 +98,13 @@ const ecma_builtin_property_descriptor_t PROPERTY_DESCRIPTOR_LIST_NAME[] =
     ECMA_PROPERTY_FLAG_CONFIGURABLE, \
     ECMA_ROUTINE_VALUE (ECMA_ROUTINE_ ## name ## c_function_name, length_prop_value) \
   },
+#define ACCESSOR_READ_ONLY(name, c_getter_func_name, prop_attributes) \
+  { \
+    name, \
+    ECMA_BUILTIN_PROPERTY_ACCESSOR_READ_ONLY, \
+    prop_attributes, \
+    ECMA_ACCESSOR_ ## name ## c_getter_func_name \
+  },
 #else /* BUILTIN_CUSTOM_DISPATCH */
 #define ROUTINE(name, c_function_name, args_number, length_prop_value) \
   { \
@@ -112,6 +119,13 @@ const ecma_builtin_property_descriptor_t PROPERTY_DESCRIPTOR_LIST_NAME[] =
     ECMA_BUILTIN_PROPERTY_ROUTINE, \
     ECMA_PROPERTY_FLAG_CONFIGURABLE, \
     ECMA_ROUTINE_VALUE (c_function_name, length_prop_value) \
+  },
+#define ACCESSOR_READ_ONLY(name, c_getter_func_name, prop_attributes) \
+  { \
+    name, \
+    ECMA_BUILTIN_PROPERTY_ACCESSOR_READ_ONLY, \
+    prop_attributes, \
+    c_getter_func_name \
   },
 #endif /* !BUILTIN_CUSTOM_DISPATCH */
 #define OBJECT_VALUE(name, obj_builtin_id, prop_attributes) \
@@ -142,7 +156,7 @@ const ecma_builtin_property_descriptor_t PROPERTY_DESCRIPTOR_LIST_NAME[] =
     prop_attributes, \
     magic_string_id \
   },
-#ifndef CONFIG_DISABLE_ES2015_SYMBOL_BUILTIN
+#if ENABLED (JERRY_ES2015_BUILTIN_SYMBOL)
 #define SYMBOL_VALUE(name, desc_string_id) \
   { \
     name, \
@@ -150,20 +164,13 @@ const ecma_builtin_property_descriptor_t PROPERTY_DESCRIPTOR_LIST_NAME[] =
     ECMA_PROPERTY_FIXED, \
     desc_string_id \
   },
-#endif /* !CONFIG_DISABLE_ES2015_SYMBOL_BUILTIN */
+#endif /* ENABLED (JERRY_ES2015_BUILTIN_SYMBOL) */
 #define ACCESSOR_READ_WRITE(name, c_getter_name, c_setter_name, prop_attributes) \
   { \
     name, \
     ECMA_BUILTIN_PROPERTY_ACCESSOR_READ_WRITE, \
     prop_attributes, \
     ECMA_ACCESSOR_READ_WRITE (ECMA_ACCESSOR_ ## name ## c_getter_name, ECMA_ACCESSOR_ ## name ## c_setter_name) \
-  },
-#define ACCESSOR_READ_ONLY(name, c_getter_func_name, prop_attributes) \
-  { \
-    name, \
-    ECMA_BUILTIN_PROPERTY_ACCESSOR_READ_ONLY, \
-    prop_attributes, \
-    ECMA_ACCESSOR_ ## name ## c_getter_func_name \
   },
 #include BUILTIN_INC_HEADER_NAME
   {

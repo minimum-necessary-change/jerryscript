@@ -15,11 +15,11 @@
 
 #include "js-parser-internal.h"
 
-#ifndef JERRY_DISABLE_JS_PARSER
+#if ENABLED (JERRY_PARSER)
 
-#ifdef JERRY_ENABLE_LINE_INFO
+#if ENABLED (JERRY_LINE_INFO)
 #include "jcontext.h"
-#endif /* JERRY_ENABLE_LINE_INFO */
+#endif /* ENABLED (JERRY_LINE_INFO) */
 
 /** \addtogroup parser Parser
  * @{
@@ -171,7 +171,7 @@ parser_flush_cbc (parser_context_t *context_p) /**< context */
     context_p->byte_code_size++;
   }
 
-#ifdef PARSER_DUMP_BYTE_CODE
+#if ENABLED (JERRY_PARSER_DUMP_BYTE_CODE)
   if (context_p->is_show_opcodes)
   {
     JERRY_DEBUG_MSG ("  [%3d] %s",
@@ -224,7 +224,7 @@ parser_flush_cbc (parser_context_t *context_p) /**< context */
 
     JERRY_DEBUG_MSG ("\n");
   }
-#endif /* PARSER_DUMP_BYTE_CODE */
+#endif /* ENABLED (JERRY_PARSER_DUMP_BYTE_CODE) */
 
   if (context_p->stack_depth > context_p->stack_limit)
   {
@@ -386,7 +386,7 @@ parser_emit_cbc_push_number (parser_context_t *context_p, /**< context */
   context_p->last_cbc.value = (uint16_t) (value - 1);
 } /* parser_emit_cbc_push_number */
 
-#ifdef JERRY_ENABLE_LINE_INFO
+#if ENABLED (JERRY_LINE_INFO)
 
 /**
  * Append a line info data
@@ -406,12 +406,12 @@ parser_emit_line_info (parser_context_t *context_p, /**< context */
     parser_flush_cbc (context_p);
   }
 
-#ifdef PARSER_DUMP_BYTE_CODE
+#if ENABLED (JERRY_PARSER_DUMP_BYTE_CODE)
   if (context_p->is_show_opcodes)
   {
     JERRY_DEBUG_MSG ("  [%3d] CBC_EXT_LINE %d\n", (int) context_p->stack_depth, line);
   }
-#endif /* PARSER_DUMP_BYTE_CODE */
+#endif /* ENABLED (JERRY_PARSER_DUMP_BYTE_CODE) */
 
   parser_emit_two_bytes (context_p, CBC_EXT_OPCODE, CBC_EXT_LINE);
   context_p->byte_code_size += 2;
@@ -443,7 +443,7 @@ parser_emit_line_info (parser_context_t *context_p, /**< context */
   while (shift > 0);
 } /* parser_emit_line_info */
 
-#endif /* JERRY_ENABLE_LINE_INFO */
+#endif /* ENABLED (JERRY_LINE_INFO) */
 
 /**
  * Append a byte code with a branch argument
@@ -488,14 +488,14 @@ parser_emit_cbc_forward_branch (parser_context_t *context_p, /**< context */
                  || (CBC_STACK_ADJUST_BASE - (flags >> CBC_STACK_ADJUST_SHIFT)) <= context_p->stack_depth);
   PARSER_PLUS_EQUAL_U16 (context_p->stack_depth, CBC_STACK_ADJUST_VALUE (flags));
 
-#ifdef PARSER_DUMP_BYTE_CODE
+#if ENABLED (JERRY_PARSER_DUMP_BYTE_CODE)
   if (context_p->is_show_opcodes)
   {
     JERRY_DEBUG_MSG ("  [%3d] %s\n",
                      (int) context_p->stack_depth,
                      extra_byte_code_increase == 0 ? cbc_names[opcode] : cbc_ext_names[opcode]);
   }
-#endif /* PARSER_DUMP_BYTE_CODE */
+#endif /* ENABLED (JERRY_PARSER_DUMP_BYTE_CODE) */
 
 #if PARSER_MAXIMUM_CODE_SIZE <= 65535
   opcode++;
@@ -559,9 +559,9 @@ parser_emit_cbc_backward_branch (parser_context_t *context_p, /**< context */
                                  uint32_t offset) /**< destination offset */
 {
   uint8_t flags;
-#ifdef PARSER_DUMP_BYTE_CODE
+#if ENABLED (JERRY_PARSER_DUMP_BYTE_CODE)
   const char *name;
-#endif /* PARSER_DUMP_BYTE_CODE */
+#endif /* ENABLED (JERRY_PARSER_DUMP_BYTE_CODE) */
 
   if (context_p->last_cbc_opcode != PARSER_CBC_UNAVAILABLE)
   {
@@ -576,9 +576,9 @@ parser_emit_cbc_backward_branch (parser_context_t *context_p, /**< context */
     JERRY_ASSERT (opcode < CBC_END);
     flags = cbc_flags[opcode];
 
-#ifdef PARSER_DUMP_BYTE_CODE
+#if ENABLED (JERRY_PARSER_DUMP_BYTE_CODE)
     name = cbc_names[opcode];
-#endif /* PARSER_DUMP_BYTE_CODE */
+#endif /* ENABLED (JERRY_PARSER_DUMP_BYTE_CODE) */
   }
   else
   {
@@ -589,9 +589,9 @@ parser_emit_cbc_backward_branch (parser_context_t *context_p, /**< context */
     flags = cbc_ext_flags[opcode];
     context_p->byte_code_size++;
 
-#ifdef PARSER_DUMP_BYTE_CODE
+#if ENABLED (JERRY_PARSER_DUMP_BYTE_CODE)
     name = cbc_ext_names[opcode];
-#endif /* PARSER_DUMP_BYTE_CODE */
+#endif /* ENABLED (JERRY_PARSER_DUMP_BYTE_CODE) */
   }
 
   JERRY_ASSERT (flags & CBC_HAS_BRANCH_ARG);
@@ -604,12 +604,12 @@ parser_emit_cbc_backward_branch (parser_context_t *context_p, /**< context */
                  || (CBC_STACK_ADJUST_BASE - (flags >> CBC_STACK_ADJUST_SHIFT)) <= context_p->stack_depth);
   PARSER_PLUS_EQUAL_U16 (context_p->stack_depth, CBC_STACK_ADJUST_VALUE (flags));
 
-#ifdef PARSER_DUMP_BYTE_CODE
+#if ENABLED (JERRY_PARSER_DUMP_BYTE_CODE)
   if (context_p->is_show_opcodes)
   {
     JERRY_DEBUG_MSG ("  [%3d] %s\n", (int) context_p->stack_depth, name);
   }
-#endif /* PARSER_DUMP_BYTE_CODE */
+#endif /* ENABLED (JERRY_PARSER_DUMP_BYTE_CODE) */
 
   context_p->byte_code_size += 2;
 #if PARSER_MAXIMUM_CODE_SIZE <= 65535
@@ -737,7 +737,7 @@ parser_set_continues_to_current_position (parser_context_t *context_p, /**< cont
   }
 } /* parser_set_continues_to_current_position */
 
-#ifdef JERRY_ENABLE_ERROR_MESSAGES
+#if ENABLED (JERRY_ERROR_MESSAGES)
 /**
  * Returns with the string representation of the error
  */
@@ -898,7 +898,7 @@ parser_error_to_string (parser_error_t error) /**< error code */
     {
       return "Case statement must be in a switch block.";
     }
-#ifndef CONFIG_DISABLE_ES2015_CLASS
+#if ENABLED (JERRY_ES2015_CLASS)
     case PARSER_ERR_MULTIPLE_CLASS_CONSTRUCTORS:
     {
       return "Multiple constructors are not allowed.";
@@ -915,7 +915,7 @@ parser_error_to_string (parser_error_t error) /**< error code */
     {
       return "Super is not allowed to be used here.";
     }
-#endif /* !CONFIG_DISABLE_ES2015_CLASS */
+#endif /* ENABLED (JERRY_ES2015_CLASS) */
     case PARSER_ERR_LEFT_PAREN_EXPECTED:
     {
       return "Expected '(' token.";
@@ -932,12 +932,12 @@ parser_error_to_string (parser_error_t error) /**< error code */
     {
       return "Expected ']' token.";
     }
-#ifndef CONFIG_DISABLE_ES2015_TEMPLATE_STRINGS
+#if ENABLED (JERRY_ES2015_TEMPLATE_STRINGS)
     case PARSER_ERR_RIGHT_BRACE_EXPECTED:
     {
       return "Expected '}' token.";
     }
-#endif /* !CONFIG_DISABLE_ES2015_TEMPLATE_STRINGS */
+#endif /* ENABLED (JERRY_ES2015_TEMPLATE_STRINGS) */
     case PARSER_ERR_COLON_EXPECTED:
     {
       return "Expected ':' token.";
@@ -954,6 +954,12 @@ parser_error_to_string (parser_error_t error) /**< error code */
     {
       return "Expected 'in' token.";
     }
+#if ENABLED (JERRY_ES2015_FOR_OF)
+    case PARSER_ERR_OF_EXPECTED:
+    {
+      return "Expected 'of' token.";
+    }
+#endif /* ENABLED (JERRY_ES2015_FOR_OF) */
     case PARSER_ERR_WHILE_EXPECTED:
     {
       return "While expected for do-while loop.";
@@ -1038,15 +1044,15 @@ parser_error_to_string (parser_error_t error) /**< error code */
     {
       return "Duplicated label.";
     }
-#if (!defined (CONFIG_DISABLE_ES2015_FUNCTION_PARAMETER_INITIALIZER) \
-     || !defined (CONFIG_DISABLE_ES2015_FUNCTION_REST_PARAMETER))
+#if ((ENABLED (JERRY_ES2015_FUNCTION_PARAMETER_INITIALIZER)) \
+     || (ENABLED (JERRY_ES2015_FUNCTION_REST_PARAMETER)))
     case PARSER_ERR_DUPLICATED_ARGUMENT_NAMES:
     {
       return "Duplicated function argument names are not allowed here.";
     }
-#endif /* (!defined (CONFIG_DISABLE_ES2015_FUNCTION_PARAMETER_INITIALIZER)
-           || !defined (CONFIG_DISABLE_ES2015_FUNCTION_REST_PARAMETER)) */
-#ifndef CONFIG_DISABLE_ES2015_FUNCTION_PARAMETER_INITIALIZER
+#endif /* ((ENABLED (JERRY_ES2015_FUNCTION_PARAMETER_INITIALIZER))
+           || (ENABLED (JERRY_ES2015_FUNCTION_REST_PARAMETER))) */
+#if ENABLED (JERRY_ES2015_FUNCTION_PARAMETER_INITIALIZER)
     case PARSER_ERR_FORMAL_PARAM_AFTER_REST_PARAMETER:
     {
       return "Rest parameter must be the last formal parameter.";
@@ -1055,7 +1061,7 @@ parser_error_to_string (parser_error_t error) /**< error code */
     {
       return "Rest parameter may not have a default initializer.";
     }
-#endif /* !CONFIG_DISABLE_ES2015_FUNCTION_PARAMETER_INITIALIZER */
+#endif /* ENABLED (JERRY_ES2015_FUNCTION_PARAMETER_INITIALIZER) */
     case PARSER_ERR_OBJECT_PROPERTY_REDEFINED:
     {
       return "Property of object literal redefined.";
@@ -1065,44 +1071,52 @@ parser_error_to_string (parser_error_t error) /**< error code */
       return "Non-strict argument definition.";
     }
 
-#ifndef CONFIG_DISABLE_ES2015_MODULE_SYSTEM
-    case PARSER_ERR_MODULE_REQUEST_NOT_FOUND:
-    {
-      return "Import request not found in the module.";
-    }
+#if ENABLED (JERRY_ES2015_MODULE_SYSTEM)
     case PARSER_ERR_FILE_NOT_FOUND:
     {
       return "Requested module not found.";
-    }
-    case PARSER_ERR_NOT_IMPLEMENTED:
-    {
-      return "Requested feature is not implemented yet.";
-    }
-    case PARSER_ERR_LEFT_PAREN_MULTIPLY_LITERAL_EXPECTED:
-    {
-      return "Expected '{' or '*' or literal token.";
-    }
-    case PARSER_ERR_RIGHT_PAREN_COMMA_FROM_EXPECTED:
-    {
-      return "Expected '}' or 'as' or 'from' literal token.";
     }
     case PARSER_ERR_FROM_EXPECTED:
     {
       return "Expected 'from' token.";
     }
+    case PARSER_ERR_FROM_COMMA_EXPECTED:
+    {
+      return "Expected 'from' or ',' token.";
+    }
+    case PARSER_ERR_AS_EXPECTED:
+    {
+      return "Expected 'as' token.";
+    }
     case PARSER_ERR_STRING_EXPECTED:
     {
-      return "Expected a string.";
-    }
-    case PARSER_ERR_MODULE_REQUEST_LIMIT_REACHED:
-    {
-      return "Maximum module request count reached.";
+      return "Expected a string literal.";
     }
     case PARSER_ERR_MODULE_UNEXPECTED:
     {
       return "Import and export statements must be in the global context.";
     }
-#endif /* !CONFIG_DISABLE_ES2015_MODULE_SYSTEM */
+    case PARSER_ERR_LEFT_BRACE_MULTIPLY_EXPECTED:
+    {
+      return "Expected '{' or '*' token.";
+    }
+    case PARSER_ERR_LEFT_BRACE_MULTIPLY_LITERAL_EXPECTED:
+    {
+      return "Expected '{' or '*' or literal token.";
+    }
+    case PARSER_ERR_RIGHT_BRACE_COMMA_EXPECTED:
+    {
+      return "Expected '}' or ',' token.";
+    }
+    case PARSER_ERR_DUPLICATED_EXPORT_IDENTIFIER:
+    {
+      return "Duplicate exported identifier.";
+    }
+    case PARSER_ERR_DUPLICATED_IMPORT_BINDING:
+    {
+      return "Duplicated imported binding name.";
+    }
+#endif /* ENABLED (JERRY_ES2015_MODULE_SYSTEM) */
 
     default:
     {
@@ -1111,7 +1125,7 @@ parser_error_to_string (parser_error_t error) /**< error code */
     }
   }
 } /* parser_error_to_string */
-#endif /* JERRY_ENABLE_ERROR_MESSAGES */
+#endif /* ENABLED (JERRY_ERROR_MESSAGES) */
 
 /**
  * @}
@@ -1119,4 +1133,4 @@ parser_error_to_string (parser_error_t error) /**< error code */
  * @}
  */
 
-#endif /* !JERRY_DISABLE_JS_PARSER */
+#endif /* ENABLED (JERRY_PARSER) */

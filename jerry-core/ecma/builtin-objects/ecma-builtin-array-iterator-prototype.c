@@ -18,11 +18,11 @@
 #include "ecma-iterator-object.h"
 #include "ecma-typedarray-object.h"
 
-#ifndef CONFIG_DISABLE_ES2015_ITERATOR_BUILTIN
+#if ENABLED (JERRY_ES2015_BUILTIN_ITERATOR)
 
-#ifdef CONFIG_DISABLE_ES2015_SYMBOL_BUILTIN
+#if !ENABLED (JERRY_ES2015_BUILTIN_SYMBOL)
 #error "Iterator builtin requires ES2015 symbol builtin"
-#endif /* CONFIG_DISABLE_ES2015_SYMBOL_BUILTIN */
+#endif /* !ENABLED (JERRY_ES2015_BUILTIN_SYMBOL) */
 
 #define ECMA_BUILTINS_INTERNAL
 #include "ecma-builtins-internal.h"
@@ -66,32 +66,33 @@ ecma_builtin_array_iterator_prototype_object_next (ecma_value_t this_val) /**< t
   ecma_extended_object_t *ext_obj_p = (ecma_extended_object_t *) obj_p;
 
   /* 3. */
-  if (ext_obj_p->u.pseudo_array.type != ECMA_PSEUDO_ARRAY_ITERATOR)
+  if (ecma_get_object_type (obj_p) != ECMA_OBJECT_TYPE_PSEUDO_ARRAY
+      || ext_obj_p->u.pseudo_array.type != ECMA_PSEUDO_ARRAY_ITERATOR)
   {
     return ecma_raise_type_error (ECMA_ERR_MSG ("Argument 'this' is not an iterator."));
   }
 
-  ecma_object_t *array_object_p = ECMA_GET_POINTER (ecma_object_t,
-                                                    ext_obj_p->u.pseudo_array.u2.iterated_value_cp);
-
+  ecma_value_t iterated_value = ext_obj_p->u.pseudo_array.u2.iterated_value;
 
   /* 4 - 5 */
-  if (array_object_p == NULL)
+  if (ecma_is_value_empty (iterated_value))
   {
     return ecma_create_iter_result_object (ECMA_VALUE_UNDEFINED, ECMA_VALUE_TRUE);
   }
 
+  ecma_object_t *array_object_p = ecma_get_object_from_value (iterated_value);
+
   uint32_t length;
 
   /* 8 - 9. */
-#ifndef CONFIG_DISABLE_ES2015_TYPEDARRAY_BUILTIN
+#if ENABLED (JERRY_ES2015_BUILTIN_TYPEDARRAY)
   if (ecma_is_typedarray (ecma_make_object_value (array_object_p)))
   {
     length = ecma_typedarray_get_length (array_object_p);
   }
   else
   {
-#endif /* !CONFIG_DISABLE_ES2015_TYPEDARRAY_BUILTIN */
+#endif /* ENABLED (JERRY_ES2015_BUILTIN_TYPEDARRAY) */
     ecma_value_t len_value = ecma_op_object_get (array_object_p,
                                                  ecma_get_magic_string (LIT_MAGIC_STRING_LENGTH));
 
@@ -112,9 +113,9 @@ ecma_builtin_array_iterator_prototype_object_next (ecma_value_t this_val) /**< t
     length = ecma_number_to_uint32 (length_number);
 
     ecma_free_value (len_value);
-#ifndef CONFIG_DISABLE_ES2015_TYPEDARRAY_BUILTIN
+#if ENABLED (JERRY_ES2015_BUILTIN_TYPEDARRAY)
   }
-#endif /* !CONFIG_DISABLE_ES2015_TYPEDARRAY_BUILTIN */
+#endif /* ENABLED (JERRY_ES2015_BUILTIN_TYPEDARRAY) */
 
   uint32_t index = ext_obj_p->u.pseudo_array.u1.iterator_index;
 
@@ -147,7 +148,7 @@ ecma_builtin_array_iterator_prototype_object_next (ecma_value_t this_val) /**< t
 
   if (index >= length)
   {
-    ECMA_SET_POINTER (ext_obj_p->u.pseudo_array.u2.iterated_value_cp, NULL);
+    ext_obj_p->u.pseudo_array.u2.iterated_value = ECMA_VALUE_EMPTY;
     return ecma_create_iter_result_object (ECMA_VALUE_UNDEFINED, ECMA_VALUE_TRUE);
   }
 
@@ -205,4 +206,4 @@ ecma_builtin_array_iterator_prototype_object_next (ecma_value_t this_val) /**< t
  * @}
  */
 
-#endif /* !CONFIG_DISABLE_ES2015_ITERATOR_BUILTIN */
+#endif /* ENABLED (JERRY_ES2015_BUILTIN_ITERATOR) */

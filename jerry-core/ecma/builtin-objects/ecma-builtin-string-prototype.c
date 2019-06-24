@@ -23,6 +23,7 @@
 #include "ecma-gc.h"
 #include "ecma-globals.h"
 #include "ecma-helpers.h"
+#include "ecma-iterator-object.h"
 #include "ecma-objects.h"
 #include "ecma-string-object.h"
 #include "ecma-try-catch-macro.h"
@@ -31,11 +32,11 @@
 #include "jrt-libc-includes.h"
 #include "lit-char-helpers.h"
 
-#ifndef CONFIG_DISABLE_REGEXP_BUILTIN
+#if ENABLED (JERRY_BUILTIN_REGEXP)
 #include "ecma-regexp-object.h"
-#endif /* !CONFIG_DISABLE_REGEXP_BUILTIN */
+#endif /* ENABLED (JERRY_BUILTIN_REGEXP) */
 
-#ifndef CONFIG_DISABLE_STRING_BUILTIN
+#if ENABLED (JERRY_BUILTIN_STRING)
 
 #define ECMA_BUILTINS_INTERNAL
 #include "ecma-builtins-internal.h"
@@ -360,7 +361,7 @@ ecma_builtin_string_prototype_object_locale_compare (ecma_value_t this_arg, /**<
   return ret_value;
 } /* ecma_builtin_string_prototype_object_locale_compare */
 
-#ifndef CONFIG_DISABLE_REGEXP_BUILTIN
+#if ENABLED (JERRY_BUILTIN_REGEXP)
 
 /**
  * The common preparation code for 'search' and 'match' functions
@@ -1336,7 +1337,7 @@ ecma_builtin_string_prototype_object_search (ecma_value_t this_arg, /**< this ar
   return ret_value;
 } /* ecma_builtin_string_prototype_object_search */
 
-#endif /* !CONFIG_DISABLE_REGEXP_BUILTIN */
+#endif /* ENABLED (JERRY_BUILTIN_REGEXP) */
 
 /**
  * The String.prototype object's 'slice' routine
@@ -1510,7 +1511,7 @@ ecma_builtin_string_prototype_object_split (ecma_value_t this_arg, /**< this arg
 
         if (separator_is_regexp)
         {
-#ifndef CONFIG_DISABLE_REGEXP_BUILTIN
+#if ENABLED (JERRY_BUILTIN_REGEXP)
           ecma_value_t regexp_value = ecma_copy_value_if_not_object (separator);
           ecma_value_t match_result;
           match_result = ecma_regexp_exec_helper (regexp_value,
@@ -1524,9 +1525,9 @@ ecma_builtin_string_prototype_object_split (ecma_value_t this_arg, /**< this arg
           }
 
           ecma_free_value (match_result);
-#else
+#else /* !ENABLED (JERRY_BUILTIN_REGEXP) */
           return ecma_raise_type_error (ECMA_ERR_MSG ("REGEXP separator is disabled in split method."));
-#endif
+#endif /* ENABLED (JERRY_BUILTIN_REGEXP) */
         }
         else
         {
@@ -1576,14 +1577,14 @@ ecma_builtin_string_prototype_object_split (ecma_value_t this_arg, /**< this arg
 
           if (separator_is_regexp)
           {
-#ifndef CONFIG_DISABLE_REGEXP_BUILTIN
+#if ENABLED (JERRY_BUILTIN_REGEXP)
             ecma_value_t regexp_value = ecma_copy_value_if_not_object (separator);
             ecma_string_t *substr_str_p = ecma_string_substr (this_to_string_p, curr_pos, string_length);
             match_result = ecma_regexp_exec_helper (regexp_value, ecma_make_string_value (substr_str_p), true);
             ecma_deref_ecma_string (substr_str_p);
-#else
+#else /* !ENABLED (JERRY_BUILTIN_REGEXP) */
             return ecma_raise_type_error (ECMA_ERR_MSG ("REGEXP separator is disabled in split method."));
-#endif
+#endif /* ENABLED (JERRY_BUILTIN_REGEXP) */
           }
           else
           {
@@ -2094,7 +2095,91 @@ ecma_builtin_string_prototype_object_trim (ecma_value_t this_arg) /**< this argu
   return ret_value;
 } /* ecma_builtin_string_prototype_object_trim */
 
-#ifndef CONFIG_DISABLE_ANNEXB_BUILTIN
+#if ENABLED (JERRY_ES2015_BUILTIN)
+
+/**
+ * The String.prototype object's 'repeat' routine
+ *
+ * See also:
+ *          ECMA-262 v6, 21.1.3.13
+ *
+ * @return ecma value
+ *         Returned value must be freed with ecma_free_value.
+ */
+static ecma_value_t
+ecma_builtin_string_prototype_object_repeat (ecma_value_t this_arg, /**< this argument */
+                                             ecma_value_t count) /**< times to repeat */
+{
+  /* 1 */
+  ecma_value_t check_coercible_value = ecma_op_check_object_coercible (this_arg);
+
+  if (ECMA_IS_VALUE_ERROR (check_coercible_value))
+  {
+    return check_coercible_value;
+  }
+
+  /* 2, 3 */
+  ecma_value_t to_string_val = ecma_op_to_string (this_arg);
+
+  if (ECMA_IS_VALUE_ERROR (to_string_val))
+  {
+    return to_string_val;
+  }
+
+  ecma_string_t *original_string_p = ecma_get_string_from_value (to_string_val);
+  ecma_string_t *ret_string_p;
+
+  /* 4 */
+  ecma_number_t length_number;
+  ecma_value_t length_value = ecma_get_number (count, &length_number);
+
+  /* 5 */
+  if (ECMA_IS_VALUE_ERROR (length_value))
+  {
+    ecma_deref_ecma_string (original_string_p);
+    return length_value;
+  }
+
+  int32_t length = ecma_number_to_int32 (length_number);
+
+  bool isNan = ecma_number_is_nan (length_number);
+
+  /* 6, 7 */
+  if (length < 0 || (!isNan && ecma_number_is_infinity (length_number)))
+  {
+    ecma_deref_ecma_string (original_string_p);
+    return ecma_raise_range_error (ECMA_ERR_MSG ("Invalid count value"));
+  }
+
+  if (length == 0 || isNan)
+  {
+    ecma_deref_ecma_string (original_string_p);
+    return ecma_make_magic_string_value (LIT_MAGIC_STRING__EMPTY);
+  }
+
+  lit_utf8_size_t size = ecma_string_get_utf8_size (original_string_p);
+  lit_utf8_size_t total_size = size * (lit_utf8_size_t) length;
+
+  JMEM_DEFINE_LOCAL_ARRAY (str_buffer, total_size, lit_utf8_byte_t);
+
+  lit_utf8_byte_t *buffer_ptr = str_buffer;
+
+  for (int32_t n = 0; n < length; n++)
+  {
+    buffer_ptr += ecma_string_copy_to_cesu8_buffer (original_string_p, buffer_ptr,
+                                                    (lit_utf8_size_t) (size));
+  }
+
+  ret_string_p = ecma_new_ecma_string_from_utf8 (str_buffer, (lit_utf8_size_t) (buffer_ptr - str_buffer));
+  JMEM_FINALIZE_LOCAL_ARRAY (str_buffer);
+  ecma_deref_ecma_string (original_string_p);
+
+  return ecma_make_string_value (ret_string_p);
+} /* ecma_builtin_string_prototype_object_repeat */
+
+#endif /* ENABLED (JERRY_ES2015_BUILTIN) */
+
+#if ENABLED (JERRY_BUILTIN_ANNEXB)
 
 /**
  * The String.prototype object's 'substr' routine
@@ -2162,7 +2247,41 @@ ecma_builtin_string_prototype_object_substr (ecma_value_t this_arg, /**< this ar
   return ret_value;
 } /* ecma_builtin_string_prototype_object_substr */
 
-#endif /* !CONFIG_DISABLE_ANNEXB_BUILTIN */
+#endif /* ENABLED (JERRY_BUILTIN_ANNEXB) */
+
+#if ENABLED (JERRY_ES2015_BUILTIN_ITERATOR)
+/**
+ * The String.prototype object's @@iterator routine
+ *
+ * See also:
+ *          ECMA-262 v6, 21.1.3.27
+ *
+ * @return ecma value
+ *         Returned value must be freed with ecma_free_value.
+ */
+static ecma_value_t
+ecma_builtin_string_prototype_object_iterator (ecma_value_t this_arg) /**< this argument */
+{
+  ecma_value_t coercible = ecma_op_check_object_coercible (this_arg);
+
+  if (ECMA_IS_VALUE_ERROR (coercible))
+  {
+    return coercible;
+  }
+
+  ecma_value_t to_string = ecma_op_to_string (this_arg);
+
+  if (ECMA_IS_VALUE_ERROR (to_string))
+  {
+    return to_string;
+  }
+
+  return ecma_op_create_iterator_object (to_string,
+                                         ecma_builtin_get (ECMA_BUILTIN_ID_STRING_ITERATOR_PROTOTYPE),
+                                         ECMA_PSEUDO_STRING_ITERATOR,
+                                         0);
+} /* ecma_builtin_string_prototype_object_iterator */
+#endif /* ENABLED (JERRY_ES2015_BUILTIN_ITERATOR) */
 
 /**
  * @}
@@ -2170,4 +2289,4 @@ ecma_builtin_string_prototype_object_substr (ecma_value_t this_arg, /**< this ar
  * @}
  */
 
-#endif /* !CONFIG_DISABLE_STRING_BUILTIN */
+#endif /* ENABLED (JERRY_BUILTIN_STRING) */

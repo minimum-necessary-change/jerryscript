@@ -16,8 +16,9 @@
 #ifndef ECMA_ITERATOR_OBJECT_H
 #define ECMA_ITERATOR_OBJECT_H
 
-#ifndef CONFIG_DISABLE_ES2015_ITERATOR_BUILTIN
 #include "ecma-globals.h"
+
+#if ENABLED (JERRY_ES2015_BUILTIN_ITERATOR)
 
 /** \addtogroup ecma ECMA
  * @{
@@ -42,7 +43,16 @@ ecma_create_iter_result_object (ecma_value_t value, ecma_value_t done);
 ecma_value_t
 ecma_create_array_from_iter_element (ecma_value_t value, ecma_value_t index_value);
 
-#endif /* !CONFIG_DISABLE_ES2015_ITERATOR_BUILTIN */
+ecma_value_t
+ecma_op_get_iterator (ecma_value_t value, ecma_value_t method);
+
+ecma_value_t
+ecma_op_iterator_value (ecma_value_t iter_result);
+
+ecma_value_t
+ecma_op_iterator_step (ecma_value_t iterator);
+
+#endif /* ENABLED (JERRY_ES2015_BUILTIN_ITERATOR) */
 
 /**
  * @}

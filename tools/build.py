@@ -90,6 +90,8 @@ def get_arguments():
                          help='build snapshot command line tool (%(choices)s)')
     compgrp.add_argument('--jerry-cmdline-test', metavar='X', choices=['ON', 'OFF'], type=str.upper,
                          help=devhelp('build test version of the jerry command line tool (%(choices)s)'))
+    compgrp.add_argument('--libfuzzer', metavar='X', choices=['ON', 'OFF'], type=str.upper,
+                         help='build jerry with libfuzzer support (%(choices)s)')
     compgrp.add_argument('--jerry-ext', metavar='X', choices=['ON', 'OFF'], type=str.upper,
                          help='build jerry-ext (%(choices)s)')
     compgrp.add_argument('--jerry-libm', metavar='X', choices=['ON', 'OFF'], type=str.upper,
@@ -184,6 +186,7 @@ def generate_build_options(arguments):
     build_options_append('JERRY_CMDLINE', arguments.jerry_cmdline)
     build_options_append('JERRY_CMDLINE_SNAPSHOT', arguments.jerry_cmdline_snapshot)
     build_options_append('JERRY_CMDLINE_TEST', arguments.jerry_cmdline_test)
+    build_options_append('JERRY_LIBFUZZER', arguments.libfuzzer)
     build_options_append('JERRY_EXT', arguments.jerry_ext)
     build_options_append('JERRY_LIBM', arguments.jerry_libm)
     build_options_append('JERRY_PORT_DEFAULT', arguments.jerry_port_default)
@@ -198,13 +201,13 @@ def generate_build_options(arguments):
     build_options_append('FEATURE_JS_PARSER', arguments.js_parser)
     build_options_append('FEATURE_LINE_INFO', arguments.line_info)
     build_options_append('FEATURE_LOGGING', arguments.logging)
-    build_options_append('MEM_HEAP_SIZE_KB', arguments.mem_heap)
+    build_options_append('JERRY_GLOBAL_HEAP_SIZE', arguments.mem_heap)
     build_options_append('FEATURE_MEM_STATS', arguments.mem_stats)
     build_options_append('FEATURE_MEM_STRESS_TEST', arguments.mem_stress_test)
     build_options_append('FEATURE_PROFILE', arguments.profile)
     build_options_append('FEATURE_REGEXP_STRICT_MODE', arguments.regexp_strict_mode)
-    build_options_append('REGEXP_RECURSION_LIMIT', arguments.regexp_recursion_limit)
-    build_options_append('VM_RECURSION_LIMIT', arguments.vm_recursion_limit)
+    build_options_append('JERRY_REGEXP_RECURSION_LIMIT', arguments.regexp_recursion_limit)
+    build_options_append('JERRY_VM_RECURSION_LIMIT', arguments.vm_recursion_limit)
     build_options_append('FEATURE_PARSER_DUMP', arguments.show_opcodes)
     build_options_append('FEATURE_REGEXP_DUMP', arguments.show_regexp_opcodes)
     build_options_append('FEATURE_SNAPSHOT_EXEC', arguments.snapshot_exec)

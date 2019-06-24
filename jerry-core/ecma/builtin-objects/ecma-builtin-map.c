@@ -15,9 +15,9 @@
 
 #include "ecma-builtins.h"
 #include "ecma-exceptions.h"
-#include "ecma-map-object.h"
+#include "ecma-container-object.h"
 
-#ifndef CONFIG_DISABLE_ES2015_MAP_BUILTIN
+#if ENABLED (JERRY_ES2015_BUILTIN_MAP)
 
 #define ECMA_BUILTINS_INTERNAL
 #include "ecma-builtins-internal.h"
@@ -59,7 +59,7 @@ ecma_value_t
 ecma_builtin_map_dispatch_construct (const ecma_value_t *arguments_list_p, /**< arguments list */
                                      ecma_length_t arguments_list_len) /**< number of arguments */
 {
-  return ecma_op_map_create (arguments_list_p, arguments_list_len);
+  return ecma_op_container_create (arguments_list_p, arguments_list_len, false);
 } /* ecma_builtin_map_dispatch_construct */
 
 /**
@@ -68,4 +68,4 @@ ecma_builtin_map_dispatch_construct (const ecma_value_t *arguments_list_p, /**< 
  * @}
  */
 
-#endif /* !CONFIG_DISABLE_ES2015_MAP_BUILTIN */
+#endif /* ENABLED (JERRY_ES2015_BUILTIN_MAP) */

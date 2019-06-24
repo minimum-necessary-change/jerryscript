@@ -99,8 +99,8 @@ typedef enum
  * vfprintf(logfile), or both, depending on log level.
  *
  * Note:
- *      This port function is called by jerry-core when JERRY_ENABLE_LOGGING is
- *      defined. It is also common practice though to use this function in
+ *      This port function is called by jerry-core when JERRY_LOGGING is
+ *      enabled. It is also common practice though to use this function in
  *      application code.
  */
 void JERRY_ATTR_FORMAT (printf, 2, 3) jerry_port_log (jerry_log_level_t level, const char *format, ...);
@@ -125,7 +125,7 @@ void JERRY_ATTR_FORMAT (printf, 2, 3) jerry_port_log (jerry_log_level_t level, c
  *
  * Note:
  *      This port function is called by jerry-core when
- *      CONFIG_DISABLE_DATE_BUILTIN is _not_ defined. Otherwise this function is
+ *      JERRY_BUILTIN_DATE is defined to 1. Otherwise this function is
  *      not used.
  *
  * @param unix_ms The unix timestamp we want an offset for, given in
@@ -147,7 +147,7 @@ double jerry_port_get_local_time_zone_adjustment (double unix_ms, bool is_utc);
  *
  * Note:
  *      This port function is called by jerry-core when
- *      CONFIG_DISABLE_DATE_BUILTIN is _not_ defined. It is also common practice
+ *      JERRY_BUILTIN_DATE is defined to 1. It is also common practice
  *      in application code to use this function for the initialization of the
  *      random number generator.
  *
@@ -161,7 +161,7 @@ double jerry_port_get_current_time (void);
  *
  * Note:
  *      This port function is called by jerry-core when
- *      JERRY_ENABLE_EXTERNAL_CONTEXT is defined. Otherwise this function is not
+ *      JERRY_EXTERNAL_CONTEXT is enabled. Otherwise this function is not
  *      used.
  *
  * @return the pointer to the engine context.
@@ -195,15 +195,15 @@ void jerry_port_print_char (char c);
  * Open a source file and read its contents into a buffer.
  *
  * Note:
- *      This port function is called by jerry-core when ES2015_MODULE_SYSTEM
+ *      This port function is called by jerry-core when JERRY_ES2015_MODULE_SYSTEM
  *      is enabled. The path is specified in the import statement's 'from "..."'
  *      section.
  *
- *  @param file_name_p Path that points to the EcmaScript file in the
- *                     filesystem.
- *  @param out_size_p The opened file's size in bytes.
+ * @param file_name_p Path that points to the EcmaScript file in the
+ *                    filesystem.
+ * @param out_size_p The opened file's size in bytes.
  *
- *  @return the pointer to the buffer which contains the content of the file.
+ * @return the pointer to the buffer which contains the content of the file.
  */
 uint8_t *jerry_port_read_source (const char *file_name_p, size_t *out_size_p);
 
@@ -214,6 +214,22 @@ uint8_t *jerry_port_read_source (const char *file_name_p, size_t *out_size_p);
  * @param buffer_p The pointer the allocated buffer.
  */
 void jerry_port_release_source (uint8_t *buffer_p);
+
+/**
+ * Normalize a file path string.
+ *
+ * Note:
+ *      This port function is called by jerry-core when ES2015_MODULE_SYSTEM
+ *      is enabled. The normalized path is used to uniquely identify modules.
+ *
+ * @param in_path_p Input path as a zero terminated string.
+ * @param out_buf_p Pointer to the output buffer where the normalized path should be written.
+ * @param out_buf_size Size of the output buffer.
+ *
+ * @return length of the string written to the output buffer
+ *         zero, if the buffer was not sufficient or an error occured
+ */
+size_t jerry_port_normalize_path (const char *in_path_p, char *out_buf_p, size_t out_buf_size);
 
 /**
  * @}
