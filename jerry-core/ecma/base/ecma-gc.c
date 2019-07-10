@@ -18,6 +18,7 @@
  */
 
 #include "ecma-alloc.h"
+#include "ecma-container-object.h"
 #include "ecma-globals.h"
 #include "ecma-gc.h"
 #include "ecma-helpers.h"
@@ -36,9 +37,6 @@
 #if ENABLED (JERRY_ES2015_BUILTIN_PROMISE)
 #include "ecma-promise-object.h"
 #endif /* ENABLED (JERRY_ES2015_BUILTIN_PROMISE) */
-#if ENABLED (JERRY_ES2015_BUILTIN_MAP)
-#include "ecma-container-object.h"
-#endif /* ENABLED (JERRY_ES2015_BUILTIN_MAP) */
 
 /* TODO: Extract GC to a separate component */
 
@@ -246,6 +244,59 @@ ecma_gc_mark_promise_object (ecma_extended_object_t *ext_object_p) /**< extended
 
 #endif /* ENABLED (JERRY_ES2015_BUILTIN_PROMISE) */
 
+#if ENABLED (JERRY_ES2015_BUILTIN_MAP) || ENABLED (JERRY_ES2015_BUILTIN_SET)
+/**
+ * Mark objects referenced by Map/Set built-in.
+ */
+static void
+ecma_gc_mark_container_object (ecma_object_t *object_p) /**< object */
+{
+  ecma_map_object_t *map_object_p = (ecma_map_object_t *) object_p;
+  ecma_object_t *internal_obj_p = ecma_get_object_from_value (map_object_p->header.u.class_prop.u.value);
+
+  ecma_property_header_t *prop_iter_p = ecma_get_property_list (internal_obj_p);
+
+  if (prop_iter_p != NULL && prop_iter_p->types[0] == ECMA_PROPERTY_TYPE_HASHMAP)
+  {
+    prop_iter_p = ECMA_GET_POINTER (ecma_property_header_t,
+                                    prop_iter_p->next_property_cp);
+  }
+
+  while (prop_iter_p != NULL)
+  {
+    JERRY_ASSERT (ECMA_PROPERTY_IS_PROPERTY_PAIR (prop_iter_p));
+
+    ecma_property_pair_t *prop_pair_p = (ecma_property_pair_t *) prop_iter_p;
+
+    for (uint32_t i = 0; i < ECMA_PROPERTY_PAIR_ITEM_COUNT; i++)
+    {
+      ecma_property_t *property_p = (ecma_property_t *) (prop_iter_p->types + i);
+      ecma_gc_mark_property ((ecma_property_pair_t *) prop_iter_p, i);
+
+      if (ECMA_PROPERTY_GET_NAME_TYPE (*property_p) == ECMA_DIRECT_STRING_PTR)
+      {
+        jmem_cpointer_t name_cp = prop_pair_p->names_cp[i];
+        ecma_string_t *prop_name_p = ECMA_GET_NON_NULL_POINTER (ecma_string_t, name_cp);
+
+        if (ECMA_STRING_GET_CONTAINER (prop_name_p) == ECMA_STRING_CONTAINER_MAP_KEY)
+        {
+          ecma_value_t key_arg = prop_name_p->u.value;
+
+          if (ecma_is_value_object (key_arg))
+          {
+            ecma_gc_set_object_visited (ecma_get_object_from_value (key_arg));
+          }
+        }
+      }
+    }
+
+    prop_iter_p = ECMA_GET_POINTER (ecma_property_header_t,
+                                    prop_iter_p->next_property_cp);
+  }
+} /* ecma_gc_mark_container_object */
+
+#endif /* ENABLED (JERRY_ES2015_BUILTIN_MAP) || ENABLED (JERRY_ES2015_BUILTIN_SET) */
+
 /**
  * Mark objects as visited starting from specified object as root
  */
@@ -304,6 +355,20 @@ ecma_gc_mark (ecma_object_t *object_p) /**< object to mark from */
             break;
           }
 #endif /* ENABLED (JERRY_ES2015_BUILTIN_DATAVIEW) */
+#if ENABLED (JERRY_ES2015_BUILTIN_MAP)
+          case LIT_MAGIC_STRING_MAP_UL:
+          {
+            ecma_gc_mark_container_object (object_p);
+            break;
+          }
+#endif /* ENABLED (JERRY_ES2015_BUILTIN_MAP) */
+#if ENABLED (JERRY_ES2015_BUILTIN_SET)
+          case LIT_MAGIC_STRING_SET_UL:
+          {
+            ecma_gc_mark_container_object (object_p);
+            break;
+          }
+#endif /* ENABLED (JERRY_ES2015_BUILTIN_SET) */
           default:
           {
             break;
@@ -328,6 +393,8 @@ ecma_gc_mark (ecma_object_t *object_p) /**< object to mark from */
 #endif /* ENABLED (JERRY_ES2015_BUILTIN_TYPEDARRAY) */
 #if ENABLED (JERRY_ES2015_BUILTIN_ITERATOR)
           case ECMA_PSEUDO_ARRAY_ITERATOR:
+          case ECMA_PSEUDO_SET_ITERATOR:
+          case ECMA_PSEUDO_MAP_ITERATOR:
           {
             ecma_value_t iterated_value = ext_object_p->u.pseudo_array.u2.iterated_value;
             if (!ecma_is_value_empty (iterated_value))
@@ -460,6 +527,10 @@ ecma_gc_free_native_pointer (ecma_property_t *property_p) /**< property */
   native_pointer_p = ECMA_GET_INTERNAL_VALUE_POINTER (ecma_native_pointer_t,
                                                       value_p->value);
 
+#ifndef JERRY_NDEBUG
+  JERRY_CONTEXT (status_flags) &= (uint32_t) ~ECMA_STATUS_API_AVAILABLE;
+#endif /* !JERRY_NDEBUG */
+
   while (native_pointer_p != NULL)
   {
     if (native_pointer_p->info_p != NULL)
@@ -478,6 +549,10 @@ ecma_gc_free_native_pointer (ecma_property_t *property_p) /**< property */
 
     native_pointer_p = next_p;
   }
+
+#ifndef JERRY_NDEBUG
+  JERRY_CONTEXT (status_flags) |= ECMA_STATUS_API_AVAILABLE;
+#endif /* !JERRY_NDEBUG */
 } /* ecma_gc_free_native_pointer */
 
 /**
@@ -643,6 +718,11 @@ ecma_gc_free_object (ecma_object_t *object_p) /**< object to free */
 #endif /* ENABLED (JERRY_ES2015_BUILTIN_PROMISE) */
 #if ENABLED (JERRY_ES2015_BUILTIN_SET)
         case LIT_MAGIC_STRING_SET_UL:
+        {
+          ecma_op_container_clear_map ((ecma_map_object_t *) object_p);
+          ecma_dealloc_extended_object (object_p, sizeof (ecma_map_object_t));
+          return;
+        }
 #endif /* ENABLED (JERRY_ES2015_BUILTIN_SET) */
 #if ENABLED (JERRY_ES2015_BUILTIN_MAP)
         case LIT_MAGIC_STRING_MAP_UL:
@@ -753,6 +833,8 @@ ecma_gc_free_object (ecma_object_t *object_p) /**< object to free */
 #endif /* ENABLED (JERRY_ES2015_BUILTIN_TYPEDARRAY) */
 #if ENABLED (JERRY_ES2015_BUILTIN_ITERATOR)
         case ECMA_PSEUDO_ARRAY_ITERATOR:
+        case ECMA_PSEUDO_SET_ITERATOR:
+        case ECMA_PSEUDO_MAP_ITERATOR:
         {
           ecma_dealloc_extended_object (object_p, sizeof (ecma_extended_object_t));
           return;
@@ -982,14 +1064,14 @@ ecma_gc_run (jmem_free_unused_memory_severity_t severity) /**< gc severity */
 void
 ecma_free_unused_memory (jmem_free_unused_memory_severity_t severity) /**< severity of the request */
 {
-#ifdef JERRY_DEBUGGER
+#if ENABLED (JERRY_DEBUGGER)
   while ((JERRY_CONTEXT (debugger_flags) & JERRY_DEBUGGER_CONNECTED)
          && JERRY_CONTEXT (debugger_byte_code_free_tail) != ECMA_NULL_POINTER)
   {
     /* Wait until all byte code is freed or the connection is aborted. */
     jerry_debugger_receive (NULL);
   }
-#endif /* JERRY_DEBUGGER */
+#endif /* ENABLED (JERRY_DEBUGGER) */
 
   if (severity == JMEM_FREE_UNUSED_MEMORY_SEVERITY_LOW)
   {

@@ -164,6 +164,14 @@ parser_emit_unary_lvalue_opcode (parser_context_t *context_p, /**< context */
     JERRY_ASSERT (CBC_SAME_ARGS (CBC_PUSH_PROP, opcode));
     context_p->last_cbc_opcode = (uint16_t) opcode;
   }
+  else if (context_p->last_cbc_opcode == CBC_PUSH_THIS_LITERAL
+           && context_p->last_cbc.literal_type == LEXER_IDENT_LITERAL)
+  {
+    context_p->last_cbc_opcode = CBC_PUSH_THIS;
+    parser_emit_cbc_literal (context_p,
+                             (uint16_t) (opcode + CBC_UNARY_LVALUE_WITH_IDENT),
+                             context_p->lit_object.index);
+  }
   else
   {
     switch (context_p->last_cbc_opcode)
@@ -903,10 +911,10 @@ parser_parse_function_expression (parser_context_t *context_p, /**< context */
 
   if (status_flags & PARSER_IS_FUNC_EXPRESSION)
   {
-#ifdef JERRY_DEBUGGER
+#if ENABLED (JERRY_DEBUGGER)
     parser_line_counter_t debugger_line = context_p->token.line;
     parser_line_counter_t debugger_column = context_p->token.column;
-#endif /* JERRY_DEBUGGER */
+#endif /* ENABLED (JERRY_DEBUGGER) */
 
     if (!lexer_check_next_character (context_p, LIT_CHAR_LEFT_PAREN))
     {
@@ -922,7 +930,7 @@ parser_parse_function_expression (parser_context_t *context_p, /**< context */
 
       lexer_construct_literal_object (context_p, &context_p->token.lit_location, LEXER_STRING_LITERAL);
 
-#ifdef JERRY_DEBUGGER
+#if ENABLED (JERRY_DEBUGGER)
       if (JERRY_CONTEXT (debugger_flags) & JERRY_DEBUGGER_CONNECTED)
       {
         jerry_debugger_send_string (JERRY_DEBUGGER_FUNCTION_NAME,
@@ -934,7 +942,7 @@ parser_parse_function_expression (parser_context_t *context_p, /**< context */
         context_p->token.line = debugger_line;
         context_p->token.column = debugger_column;
       }
-#endif /* JERRY_DEBUGGER */
+#endif /* ENABLED (JERRY_DEBUGGER) */
 
       if (context_p->token.literal_is_reserved
           || context_p->lit_object.type != LEXER_LITERAL_OBJECT_ANY)
