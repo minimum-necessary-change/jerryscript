@@ -292,8 +292,14 @@ jerry_gc (jerry_gc_mode_t mode) /**< operational mode */
 {
   jerry_assert_api_available ();
 
-  ecma_gc_run (mode == JERRY_GC_SEVERITY_LOW ? JMEM_FREE_UNUSED_MEMORY_SEVERITY_LOW
-                                             : JMEM_FREE_UNUSED_MEMORY_SEVERITY_HIGH);
+  if (mode == JERRY_GC_PRESSURE_LOW)
+  {
+    /* Call GC directly, because 'ecma_free_unused_memory' might decide it's not yet worth it. */
+    ecma_gc_run ();
+    return;
+  }
+
+  ecma_free_unused_memory (JMEM_PRESSURE_HIGH);
 } /* jerry_gc */
 
 /**
@@ -396,10 +402,17 @@ jerry_parse (const jerry_char_t *resource_name_p, /**< resource name (usually a 
 #if ENABLED (JERRY_PARSER)
   jerry_assert_api_available ();
 
-#if ENABLED (JERRY_LINE_INFO)
-  JERRY_CONTEXT (resource_name) = ecma_find_or_create_literal_string (resource_name_p,
-                                                                      (lit_utf8_size_t) resource_name_length);
-#endif /* ENABLED (JERRY_LINE_INFO) */
+#if ENABLED (JERRY_LINE_INFO) || ENABLED (JERRY_ERROR_MESSAGES) || ENABLED (JERRY_ES2015_MODULE_SYSTEM)
+  if (resource_name_length == 0)
+  {
+    JERRY_CONTEXT (resource_name) = ecma_make_magic_string_value (LIT_MAGIC_STRING_RESOURCE_ANON);
+  }
+  else
+  {
+    JERRY_CONTEXT (resource_name) = ecma_find_or_create_literal_string (resource_name_p,
+                                                                        (lit_utf8_size_t) resource_name_length);
+  }
+#endif /* ENABLED (JERRY_LINE_INFO) || ENABLED (JERRY_ERROR_MESSAGES) || ENABLED (JERRY_ES2015_MODULE_SYSTEM) */
 
   ecma_compiled_code_t *bytecode_data_p;
   ecma_value_t parse_status;
@@ -468,10 +481,17 @@ jerry_parse_function (const jerry_char_t *resource_name_p, /**< resource name (u
   ecma_compiled_code_t *bytecode_data_p;
   ecma_value_t parse_status;
 
-#if ENABLED (JERRY_LINE_INFO)
-  JERRY_CONTEXT (resource_name) = ecma_find_or_create_literal_string (resource_name_p,
-                                                                      (lit_utf8_size_t) resource_name_length);
-#endif /* ENABLED (JERRY_LINE_INFO) */
+#if ENABLED (JERRY_LINE_INFO) || ENABLED (JERRY_ERROR_MESSAGES) || ENABLED (JERRY_ES2015_MODULE_SYSTEM)
+  if (resource_name_length == 0)
+  {
+    JERRY_CONTEXT (resource_name) = ecma_make_magic_string_value (LIT_MAGIC_STRING_RESOURCE_ANON);
+  }
+  else
+  {
+    JERRY_CONTEXT (resource_name) = ecma_find_or_create_literal_string (resource_name_p,
+                                                                        (lit_utf8_size_t) resource_name_length);
+  }
+#endif /* ENABLED (JERRY_LINE_INFO) || ENABLED (JERRY_ERROR_MESSAGES) || ENABLED (JERRY_ES2015_MODULE_SYSTEM) */
 
   if (arg_list_p == NULL)
   {
@@ -2555,7 +2575,7 @@ jerry_objects_foreach (jerry_objects_foreach_t foreach_p, /**< function pointer 
 
   JERRY_ASSERT (foreach_p != NULL);
 
-  for (ecma_object_t *iter_p = JERRY_CONTEXT (ecma_gc_objects_p);
+  for (ecma_object_t *iter_p = ECMA_GET_POINTER (ecma_object_t, JERRY_CONTEXT (ecma_gc_objects_cp));
        iter_p != NULL;
        iter_p = ECMA_GET_POINTER (ecma_object_t, iter_p->gc_next_cp))
   {
@@ -2589,7 +2609,7 @@ jerry_objects_foreach_by_native_info (const jerry_object_native_info_t *native_i
 
   ecma_native_pointer_t *native_pointer_p;
 
-  for (ecma_object_t *iter_p = JERRY_CONTEXT (ecma_gc_objects_p);
+  for (ecma_object_t *iter_p = ECMA_GET_POINTER (ecma_object_t, JERRY_CONTEXT (ecma_gc_objects_cp));
        iter_p != NULL;
        iter_p = ECMA_GET_POINTER (ecma_object_t, iter_p->gc_next_cp))
   {

@@ -34,7 +34,7 @@ extern "C"
 /**
  * Major version of JerryScript API.
  */
-#define JERRY_API_MAJOR_VERSION 1
+#define JERRY_API_MAJOR_VERSION 2
 
 /**
  * Minor version of JerryScript API.
@@ -111,10 +111,10 @@ typedef enum
  */
 typedef enum
 {
-  JERRY_GC_SEVERITY_LOW, /**< free unused objects, but keep memory
+  JERRY_GC_PRESSURE_LOW, /**< free unused objects, but keep memory
                           *   allocated for performance improvements
                           *   such as property hash tables for large objects */
-  JERRY_GC_SEVERITY_HIGH /**< free as much memory as possible */
+  JERRY_GC_PRESSURE_HIGH /**< free as much memory as possible */
 } jerry_gc_mode_t;
 
 /**

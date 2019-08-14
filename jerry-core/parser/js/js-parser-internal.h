@@ -82,7 +82,8 @@ typedef enum
 #endif /* ENABLED (JERRY_ES2015_CLASS) */
 #if ENABLED (JERRY_ES2015_MODULE_SYSTEM)
   PARSER_MODULE_DEFAULT_CLASS_OR_FUNC = (1u << 25),  /**< parsing a function or class default export */
-  PARSER_MODULE_STORE_IDENT = (1u << 26),    /**< store identifier of the current export statement */
+  PARSER_MODULE_STORE_IDENT = (1u << 26),     /**< store identifier of the current export statement */
+  PARSER_IS_EVAL = (1u << 27),                /**< eval code */
 #endif /* ENABLED (JERRY_ES2015_MODULE_SYSTEM) */
 } parser_general_flags_t;
 
@@ -571,7 +572,7 @@ extern const lexer_lit_location_t lexer_default_literal;
 void parser_module_add_export_node_to_context (parser_context_t *context_p);
 void parser_module_add_import_node_to_context (parser_context_t *context_p);
 void parser_module_check_request_place (parser_context_t *context_p);
-void parser_module_context_init (parser_context_t *context_p);
+void parser_module_context_init (void);
 void parser_module_handle_module_specifier (parser_context_t *context_p);
 void parser_module_handle_requests (parser_context_t *context_p);
 void parser_module_parse_export_clause (parser_context_t *context_p);

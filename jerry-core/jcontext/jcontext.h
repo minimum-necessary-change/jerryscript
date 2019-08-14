@@ -43,23 +43,36 @@
 #define CONFIG_MEM_HEAP_SIZE (JERRY_GLOBAL_HEAP_SIZE * 1024)
 
 /**
+ * Maximum stack usage size in bytes
+ */
+#define CONFIG_MEM_STACK_LIMIT (JERRY_STACK_LIMIT * 1024)
+
+/**
  * Max heap usage limit
  */
-#define CONFIG_MEM_HEAP_MAX_LIMIT 8192
+#define CONFIG_MAX_GC_LIMIT 8192
 
 /**
- * Desired limit of heap usage
- */
-#define CONFIG_MEM_HEAP_DESIRED_LIMIT (JERRY_MIN (CONFIG_MEM_HEAP_SIZE / 32, CONFIG_MEM_HEAP_MAX_LIMIT))
-
-/**
- * Share of newly allocated since last GC objects among all currently allocated objects,
- * after achieving which, GC is started upon low severity try-give-memory-back requests.
+ * Allowed heap usage limit until next garbage collection
  *
- * Share is calculated as the following:
- *                1.0 / CONFIG_ECMA_GC_NEW_OBJECTS_SHARE_TO_START_GC
+ * Whenever the total allocated memory size reaches the current heap limit, garbage collection will be triggered
+ * to try and reduce clutter from unreachable objects. If the allocated memory can't be reduced below the limit,
+ * then the current limit will be incremented by CONFIG_MEM_HEAP_LIMIT.
  */
-#define CONFIG_ECMA_GC_NEW_OBJECTS_SHARE_TO_START_GC (16)
+#if defined (JERRY_GC_LIMIT) && (JERRY_GC_LIMIT != 0)
+#define CONFIG_GC_LIMIT JERRY_GC_LIMIT
+#else
+#define CONFIG_GC_LIMIT (JERRY_MIN (CONFIG_MEM_HEAP_SIZE / 32, CONFIG_MAX_GC_LIMIT))
+#endif
+
+/**
+ * Amount of newly allocated objects since the last GC run, represented as a fraction of all allocated objects,
+ * which when reached will trigger garbage collection to run with a low pressure setting.
+ *
+ * The fraction is calculated as:
+ *                1.0 / CONFIG_ECMA_GC_NEW_OBJECTS_FRACTION
+ */
+#define CONFIG_ECMA_GC_NEW_OBJECTS_FRACTION (16)
 
 #if !ENABLED (JERRY_SYSTEM_ALLOCATOR)
 /**
@@ -111,17 +124,16 @@ struct jerry_context_t
 #endif /* ENABLED (JERRY_EXTERNAL_CONTEXT) */
 
   /* Update JERRY_CONTEXT_FIRST_MEMBER if the first non-external member changes */
-  ecma_object_t *ecma_builtin_objects[ECMA_BUILTIN_ID__COUNT]; /**< pointer to instances of built-in objects */
+  jmem_cpointer_t ecma_builtin_objects[ECMA_BUILTIN_ID__COUNT]; /**< pointer to instances of built-in objects */
 #if ENABLED (JERRY_BUILTIN_REGEXP)
   const re_compiled_code_t *re_cache[RE_CACHE_SIZE]; /**< regex cache */
 #endif /* ENABLED (JERRY_BUILTIN_REGEXP) */
-  ecma_object_t *ecma_gc_objects_p; /**< List of currently alive objects. */
+  jmem_cpointer_t ecma_gc_objects_cp; /**< List of currently alive objects. */
   jmem_heap_free_t *jmem_heap_list_skip_p; /**< This is used to speed up deallocation. */
   jmem_pools_chunk_t *jmem_free_8_byte_chunk_p; /**< list of free eight byte pool chunks */
 #if ENABLED (JERRY_CPOINTER_32_BIT)
   jmem_pools_chunk_t *jmem_free_16_byte_chunk_p; /**< list of free sixteen byte pool chunks */
 #endif /* ENABLED (JERRY_CPOINTER_32_BIT) */
-  jmem_free_unused_memory_callback_t jmem_free_unused_memory_callback; /**< Callback for freeing up memory. */
   const lit_utf8_byte_t * const *lit_magic_string_ex_array; /**< array of external magic strings */
   const lit_utf8_size_t *lit_magic_string_ex_sizes; /**< external magic string lengths */
   ecma_lit_storage_item_t *string_list_first_p; /**< first item of the literal string list */
@@ -129,7 +141,7 @@ struct jerry_context_t
   ecma_lit_storage_item_t *symbol_list_first_p; /**< first item of the global symbol list */
 #endif /* ENABLED (JERRY_ES2015_BUILTIN_SYMBOL) */
   ecma_lit_storage_item_t *number_list_first_p; /**< first item of the literal number list */
-  ecma_object_t *ecma_global_lex_env_p; /**< global lexical environment */
+  jmem_cpointer_t ecma_global_lex_env_cp; /**< global lexical environment */
 
 #if ENABLED (JERRY_ES2015_MODULE_SYSTEM)
   ecma_module_t *ecma_modules_p; /**< list of referenced modules */
@@ -170,9 +182,9 @@ struct jerry_context_t
                                                  *   ECMAScript execution should be stopped */
 #endif /* ENABLED (JERRY_VM_EXEC_STOP) */
 
-#if defined (JERRY_CALL_STACK_LIMIT) && (JERRY_CALL_STACK_LIMIT != 0)
-  uint32_t function_call_counter;  /**< Function call recursion counter */
-#endif /* defined (JERRY_CALL_STACK_LIMIT) && (JERRY_CALL_STACK_LIMIT != 0) */
+#if (JERRY_STACK_LIMIT != 0)
+  uintptr_t stack_base;  /**< stack base marker */
+#endif /* (JERRY_STACK_LIMIT != 0) */
 
 #if ENABLED (JERRY_DEBUGGER)
   uint8_t debugger_send_buffer[JERRY_DEBUGGER_TRANSPORT_MAX_BUFFER_SIZE]; /**< buffer for sending messages */
@@ -191,9 +203,9 @@ struct jerry_context_t
   uint8_t debugger_max_receive_size; /**< maximum amount of data that can be received */
 #endif /* ENABLED (JERRY_DEBUGGER) */
 
-#if ENABLED (JERRY_LINE_INFO)
+#if ENABLED (JERRY_LINE_INFO) || ENABLED (JERRY_ERROR_MESSAGES) || ENABLED (JERRY_ES2015_MODULE_SYSTEM)
   ecma_value_t resource_name; /**< resource name (usually a file name) */
-#endif /* ENABLED (JERRY_LINE_INFO) */
+#endif /* ENABLED (JERRY_LINE_INFO) || ENABLED (JERRY_ERROR_MESSAGES) || ENABLED (JERRY_ES2015_MODULE_SYSTEM) */
 
 #if ENABLED (JERRY_MEM_STATS)
   jmem_heap_stats_t jmem_heap_stats; /**< heap's memory usage statistics */

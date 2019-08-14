@@ -727,7 +727,7 @@ main (void)
   jerry_release_value (global_obj_val);
 
   /* Test: run gc. */
-  jerry_gc (JERRY_GC_SEVERITY_LOW);
+  jerry_gc (JERRY_GC_PRESSURE_LOW);
 
   /* Test: spaces */
   const jerry_char_t eval_code_src2[] = "\x0a \x0b \x0c \xc2\xa0 \xe2\x80\xa8 \xe2\x80\xa9 \xef\xbb\xbf 4321";
@@ -827,7 +827,49 @@ main (void)
     jerry_release_value (err_str_val);
     jerry_release_value (parsed_code_val);
     TEST_ASSERT (!strcmp ((char *) err_str_buf,
-                          "SyntaxError: Primary expression expected. [line: 2, column: 10]"));
+                          "SyntaxError: Primary expression expected. [<anonymous>:2:10]"));
+
+    const jerry_char_t file_str[] = "filename.js";
+    parsed_code_val = jerry_parse (file_str,
+                                   sizeof (file_str) - 1,
+                                   parser_err_src,
+                                   sizeof (parser_err_src) - 1,
+                                   JERRY_PARSE_NO_OPTS);
+    TEST_ASSERT (jerry_value_is_error (parsed_code_val));
+    parsed_code_val = jerry_get_value_from_error (parsed_code_val, true);
+    err_str_val = jerry_value_to_string (parsed_code_val);
+    err_str_size = jerry_get_string_size (err_str_val);
+
+    sz = jerry_string_to_char_buffer (err_str_val, err_str_buf, err_str_size);
+    err_str_buf[sz] = 0;
+
+    jerry_release_value (err_str_val);
+    jerry_release_value (parsed_code_val);
+    TEST_ASSERT (!strcmp ((char *) err_str_buf,
+                          "SyntaxError: Primary expression expected. [filename.js:2:10]"));
+
+    const jerry_char_t eval_err_src[] = "eval(\"var b;\\nfor (,); \");";
+    parsed_code_val = jerry_parse (file_str,
+                                   sizeof (file_str),
+                                   eval_err_src,
+                                   sizeof (eval_err_src) - 1,
+                                   JERRY_PARSE_NO_OPTS);
+    TEST_ASSERT (!jerry_value_is_error (parsed_code_val));
+
+    res = jerry_run (parsed_code_val);
+    TEST_ASSERT (jerry_value_is_error (res));
+    res = jerry_get_value_from_error (res, true);
+    err_str_val = jerry_value_to_string (res);
+    err_str_size = jerry_get_string_size (err_str_val);
+
+    sz = jerry_string_to_char_buffer (err_str_val, err_str_buf, err_str_size);
+    err_str_buf[sz] = 0;
+
+    jerry_release_value (err_str_val);
+    jerry_release_value (parsed_code_val);
+    jerry_release_value (res);
+    TEST_ASSERT (!strcmp ((char *) err_str_buf,
+                          "SyntaxError: Primary expression expected. [<eval>:2:6]"));
 
     jerry_cleanup ();
   }
@@ -860,7 +902,7 @@ main (void)
   cesu8_length = jerry_get_string_length (args[0]);
   cesu8_sz = jerry_get_string_size (args[0]);
 
-  char string_console[cesu8_sz];
+  JERRY_VLA (char, string_console, cesu8_sz);
   jerry_string_to_char_buffer (args[0], (jerry_char_t *) string_console, cesu8_sz);
 
   TEST_ASSERT (!strncmp (string_console, "console", cesu8_sz));
@@ -881,7 +923,7 @@ main (void)
   cesu8_length = jerry_get_string_length (args[1]);
   cesu8_sz = jerry_get_string_size (args[1]);
 
-  char string_greek_zero_sign[cesu8_sz];
+  JERRY_VLA (char, string_greek_zero_sign, cesu8_sz);
   jerry_string_to_char_buffer (args[1], (jerry_char_t *) string_greek_zero_sign, cesu8_sz);
 
   TEST_ASSERT (!strncmp (string_greek_zero_sign, "\xed\xa0\x80\xed\xb6\x8a", cesu8_sz));
@@ -902,7 +944,7 @@ main (void)
     jerry_value_t parsed_data = jerry_get_property (parsed_json, key);
     TEST_ASSERT (jerry_value_is_string (parsed_data)== true);
     jerry_size_t buff_size = (jerry_size_t) jerry_get_string_length (parsed_data);
-    char buff[buff_size + 1];
+    JERRY_VLA (char, buff, buff_size + 1);
     jerry_string_to_char_buffer (parsed_data, (jerry_char_t *) buff, buff_size);
     buff[buff_size] = '\0';
     TEST_ASSERT (strcmp (data_check, buff) == false);
@@ -923,7 +965,7 @@ main (void)
     jerry_release_value (res);
     jerry_value_t stringified = jerry_json_stringify (obj);
     TEST_ASSERT (jerry_value_is_string (stringified));
-    char buff[jerry_get_string_length (stringified)];
+    JERRY_VLA (char, buff, stringified);
     jerry_string_to_char_buffer (stringified, (jerry_char_t *) buff,
                                 (jerry_size_t) jerry_get_string_length (stringified));
     buff[jerry_get_string_length (stringified)] = '\0';

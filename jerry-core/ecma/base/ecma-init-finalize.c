@@ -37,16 +37,15 @@ ecma_init (void)
 {
   ecma_init_global_lex_env ();
 
-  jmem_register_free_unused_memory_callback (ecma_free_unused_memory);
-
 #if ENABLED (JERRY_PROPRETY_HASHMAP)
   JERRY_CONTEXT (ecma_prop_hashmap_alloc_state) = ECMA_PROP_HASHMAP_ALLOC_ON;
-  JERRY_CONTEXT (status_flags) &= (uint32_t) ~ECMA_STATUS_HIGH_SEV_GC;
+  JERRY_CONTEXT (status_flags) &= (uint32_t) ~ECMA_STATUS_HIGH_PRESSURE_GC;
 #endif /* ENABLED (JERRY_PROPRETY_HASHMAP) */
 
-#if defined (JERRY_CALL_STACK_LIMIT) && (JERRY_CALL_STACK_LIMIT != 0)
-  JERRY_CONTEXT (function_call_counter) = JERRY_CALL_STACK_LIMIT;
-#endif /* defined (JERRY_CALL_STACK_LIMIT) && (JERRY_CALL_STACK_LIMIT != 0) */
+#if (JERRY_STACK_LIMIT != 0)
+  volatile int sp;
+  JERRY_CONTEXT (stack_base) = (uintptr_t)&sp;
+#endif /* (JERRY_STACK_LIMIT != 0) */
 
 #if ENABLED (JERRY_ES2015_BUILTIN_PROMISE)
   ecma_job_queue_init ();
@@ -59,10 +58,9 @@ ecma_init (void)
 void
 ecma_finalize (void)
 {
-  jmem_unregister_free_unused_memory_callback (ecma_free_unused_memory);
   ecma_finalize_global_lex_env ();
   ecma_finalize_builtins ();
-  ecma_gc_run (JMEM_FREE_UNUSED_MEMORY_SEVERITY_LOW);
+  ecma_gc_run ();
   ecma_finalize_lit_storage ();
 } /* ecma_finalize */
 

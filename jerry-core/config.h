@@ -13,8 +13,10 @@
  * limitations under the License.
  */
 
-#ifndef CONFIG_H
-#define CONFIG_H
+#ifndef JERRYSCRIPT_CONFIG_H
+#define JERRYSCRIPT_CONFIG_H
+
+// @JERRY_BUILD_CFG@
 
 /**
  * Built-in configurations
@@ -206,6 +208,28 @@
 #endif /* !defined (JERRY_GLOBAL_HEAP_SIZE) */
 
 /**
+ * The allowed heap usage limit until next garbage collection, in bytes.
+ *
+ * If value is 0, the default is 1/32 of JERRY_HEAP_SIZE
+ */
+#ifndef JERRY_GC_LIMIT
+# define JERRY_GC_LIMIT 0
+#endif /* !defined (JERRY_GC_LIMIT) */
+
+/**
+ * Maximum stack usage size in kilobytes
+ *
+ * Note: This feature cannot be used when 'detect_stack_use_after_return=1' ASAN option is enabled.
+ * For more detailed description:
+ *   - https://github.com/google/sanitizers/wiki/AddressSanitizerUseAfterReturn#compatibility
+ *
+ * Default value: 0, unlimited
+ */
+#ifndef JERRY_STACK_LIMIT
+# define JERRY_STACK_LIMIT (0)
+#endif /* !defined (JERRY_STACK_LIMIT) */
+
+/**
  * Enable/Disable property lookup cache.
  *
  * Allowed values:
@@ -353,22 +377,6 @@
 #endif /* !defined (JERRY_REGEXP_STRICT_MODE) */
 
 /**
- * Set the RegExp parser and execution recursion limit.
- *
- * Allowed values:
- *  0: Disable recursion limit check.
- *  1 or greater: Set the recursion limit to the given number.
- *
- * Note:
- *  A negative value will cause a static assert compiler error.
- *
- * Default value: 0
- */
-#ifndef JERRY_REGEXP_RECURSION_LIMIT
-# define JERRY_REGEXP_RECURSION_LIMIT 0
-#endif /* !defined (JERRY_REGEXP_RECURSION_LIMIT) */
-
-/**
  * Enable/Disable the snapshot execution functions.
  *
  * Allowed values:
@@ -434,23 +442,6 @@
 #ifndef JERRY_VM_EXEC_STOP
 # define JERRY_VM_EXEC_STOP 0
 #endif /* !defined (JERRY_VM_EXEC_STOP) */
-
-/**
- * Set the function call recursion limit.
- *
- * Allowed values:
- *  0: Disable recursion limit check.
- *  1 or greater: Set the recursion limit to the given number.
- *
- * Note:
- *  A negative value will cause a static assert compiler error.
- *
- * Default value: 0
- */
-#ifndef JERRY_CALL_STACK_LIMIT
-# define JERRY_CALL_STACK_LIMIT 0
-#endif /* !defined (JERRY_CALL_STACK_LIMIT) */
-
 
 /**
  * Advanced section configurations.
@@ -631,6 +622,12 @@
 #if !defined (JERRY_GLOBAL_HEAP_SIZE) || (JERRY_GLOBAL_HEAP_SIZE <= 0)
 # error "Invalid value for 'JERRY_GLOBAL_HEAP_SIZE' macro."
 #endif
+#if !defined (JERRY_GC_LIMIT) || (JERRY_GC_LIMIT < 0)
+# error "Invalid value for 'JERRY_GC_LIMIT' macro."
+#endif
+#if !defined (JERRY_STACK_LIMIT) || (JERRY_STACK_LIMIT < 0)
+# error "Invalid value for 'JERRY_STACK_LIMIT' macro."
+#endif
 #if !defined (JERRY_LCACHE) \
 || ((JERRY_LCACHE != 0) && (JERRY_LCACHE != 1))
 # error "Invalid value for 'JERRY_LCACHE' macro."
@@ -715,4 +712,4 @@
 #  error "Date does not support float32"
 #endif
 
-#endif /* !CONFIG_H */
+#endif /* !JERRYSCRIPT_CONFIG_H */

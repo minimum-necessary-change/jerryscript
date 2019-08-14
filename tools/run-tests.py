@@ -33,10 +33,11 @@ Options.__new__.__defaults__ = ([], [], False)
 def skip_if(condition, desc):
     return desc if condition else False
 
+OPTIONS_COMMON = ['--lto=off']
 OPTIONS_PROFILE_MIN = ['--profile=minimal']
 OPTIONS_PROFILE_ES51 = [] # NOTE: same as ['--profile=es5.1']
 OPTIONS_PROFILE_ES2015 = ['--profile=es2015-subset']
-OPTIONS_CALL_STACK_LIMIT = ['--call-stack-limit=100']
+OPTIONS_STACK_LIMIT = ['--stack-limit=128']
 OPTIONS_DEBUG = ['--debug']
 OPTIONS_SNAPSHOT = ['--snapshot-save=on', '--snapshot-exec=on', '--jerry-cmdline-snapshot=on']
 OPTIONS_UNITTESTS = ['--unittests=on', '--jerry-cmdline=off', '--error-messages=on',
@@ -48,64 +49,67 @@ OPTIONS_DOCTESTS = ['--doctests=on', '--jerry-cmdline=off', '--error-messages=on
 # Test options for unittests
 JERRY_UNITTESTS_OPTIONS = [
     Options('unittests-es2015_subset',
-            OPTIONS_UNITTESTS + OPTIONS_PROFILE_ES2015),
+            OPTIONS_COMMON + OPTIONS_UNITTESTS + OPTIONS_PROFILE_ES2015),
     Options('unittests-es2015_subset-debug',
-            OPTIONS_UNITTESTS + OPTIONS_PROFILE_ES2015 + OPTIONS_DEBUG),
+            OPTIONS_COMMON + OPTIONS_UNITTESTS + OPTIONS_PROFILE_ES2015 + OPTIONS_DEBUG),
     Options('doctests-es2015_subset',
-            OPTIONS_DOCTESTS + OPTIONS_PROFILE_ES2015),
+            OPTIONS_COMMON + OPTIONS_DOCTESTS + OPTIONS_PROFILE_ES2015),
     Options('doctests-es2015_subset-debug',
-            OPTIONS_DOCTESTS + OPTIONS_PROFILE_ES2015 + OPTIONS_DEBUG),
+            OPTIONS_COMMON + OPTIONS_DOCTESTS + OPTIONS_PROFILE_ES2015 + OPTIONS_DEBUG),
     Options('unittests-es5.1',
-            OPTIONS_UNITTESTS + OPTIONS_PROFILE_ES51),
+            OPTIONS_COMMON + OPTIONS_UNITTESTS + OPTIONS_PROFILE_ES51),
     Options('unittests-es5.1-debug',
-            OPTIONS_UNITTESTS + OPTIONS_PROFILE_ES51 + OPTIONS_DEBUG),
+            OPTIONS_COMMON + OPTIONS_UNITTESTS + OPTIONS_PROFILE_ES51 + OPTIONS_DEBUG),
     Options('doctests-es5.1',
-            OPTIONS_DOCTESTS + OPTIONS_PROFILE_ES51),
+            OPTIONS_COMMON + OPTIONS_DOCTESTS + OPTIONS_PROFILE_ES51),
     Options('doctests-es5.1-debug',
-            OPTIONS_DOCTESTS + OPTIONS_PROFILE_ES51 + OPTIONS_DEBUG)
+            OPTIONS_COMMON + OPTIONS_DOCTESTS + OPTIONS_PROFILE_ES51 + OPTIONS_DEBUG),
+    Options('unittests-es5.1-debug-init-fini',
+            OPTIONS_COMMON + OPTIONS_UNITTESTS + OPTIONS_PROFILE_ES51 + OPTIONS_DEBUG
+            + ['--cmake-param=-DFEATURE_INIT_FINI=ON']),
 ]
 
 # Test options for jerry-tests
 JERRY_TESTS_OPTIONS = [
+    Options('jerry_tests-es2015_subset-debug',
+            OPTIONS_COMMON + OPTIONS_PROFILE_ES2015 + OPTIONS_DEBUG + OPTIONS_STACK_LIMIT),
     Options('jerry_tests-es5.1',
-            OPTIONS_PROFILE_ES51 + OPTIONS_CALL_STACK_LIMIT),
+            OPTIONS_COMMON + OPTIONS_PROFILE_ES51 + OPTIONS_STACK_LIMIT),
     Options('jerry_tests-es5.1-snapshot',
-            OPTIONS_PROFILE_ES51 + OPTIONS_SNAPSHOT + OPTIONS_CALL_STACK_LIMIT,
+            OPTIONS_COMMON + OPTIONS_PROFILE_ES51 + OPTIONS_SNAPSHOT + OPTIONS_STACK_LIMIT,
             ['--snapshot']),
     Options('jerry_tests-es5.1-debug',
-            OPTIONS_PROFILE_ES51 + OPTIONS_DEBUG + OPTIONS_CALL_STACK_LIMIT),
+            OPTIONS_COMMON + OPTIONS_PROFILE_ES51 + OPTIONS_DEBUG + OPTIONS_STACK_LIMIT),
     Options('jerry_tests-es5.1-debug-snapshot',
-            OPTIONS_PROFILE_ES51 + OPTIONS_SNAPSHOT + OPTIONS_DEBUG + OPTIONS_CALL_STACK_LIMIT,
+            OPTIONS_COMMON + OPTIONS_PROFILE_ES51 + OPTIONS_SNAPSHOT + OPTIONS_DEBUG + OPTIONS_STACK_LIMIT,
             ['--snapshot']),
     Options('jerry_tests-es5.1-debug-cpointer_32bit',
-            OPTIONS_PROFILE_ES51 + OPTIONS_DEBUG + OPTIONS_CALL_STACK_LIMIT
+            OPTIONS_COMMON + OPTIONS_PROFILE_ES51 + OPTIONS_DEBUG + OPTIONS_STACK_LIMIT
             + ['--cpointer-32bit=on', '--mem-heap=1024']),
     Options('jerry_tests-es5.1-debug-external_context',
-            OPTIONS_PROFILE_ES51 + OPTIONS_DEBUG + OPTIONS_CALL_STACK_LIMIT + ['--external-context=on']),
-    Options('jerry_tests-es2015_subset-debug',
-            OPTIONS_PROFILE_ES2015 + OPTIONS_DEBUG + OPTIONS_CALL_STACK_LIMIT),
+            OPTIONS_COMMON + OPTIONS_PROFILE_ES51 + OPTIONS_DEBUG + OPTIONS_STACK_LIMIT + ['--external-context=on']),
 ]
 
 # Test options for jerry-test-suite
 JERRY_TEST_SUITE_OPTIONS = JERRY_TESTS_OPTIONS[:]
 JERRY_TEST_SUITE_OPTIONS.extend([
     Options('jerry_test_suite-minimal',
-            OPTIONS_PROFILE_MIN),
+            OPTIONS_COMMON + OPTIONS_PROFILE_MIN),
     Options('jerry_test_suite-minimal-snapshot',
-            OPTIONS_PROFILE_MIN + OPTIONS_SNAPSHOT,
+            OPTIONS_COMMON + OPTIONS_PROFILE_MIN + OPTIONS_SNAPSHOT,
             ['--snapshot']),
     Options('jerry_test_suite-minimal-debug',
-            OPTIONS_PROFILE_MIN + OPTIONS_DEBUG),
+            OPTIONS_COMMON + OPTIONS_PROFILE_MIN + OPTIONS_DEBUG),
     Options('jerry_test_suite-minimal-debug-snapshot',
-            OPTIONS_PROFILE_MIN + OPTIONS_SNAPSHOT + OPTIONS_DEBUG,
+            OPTIONS_COMMON + OPTIONS_PROFILE_MIN + OPTIONS_SNAPSHOT + OPTIONS_DEBUG,
             ['--snapshot']),
     Options('jerry_test_suite-es2015_subset',
-            OPTIONS_PROFILE_ES2015),
+            OPTIONS_COMMON + OPTIONS_PROFILE_ES2015),
     Options('jerry_test_suite-es2015_subset-snapshot',
-            OPTIONS_PROFILE_ES2015 + OPTIONS_SNAPSHOT,
+            OPTIONS_COMMON + OPTIONS_PROFILE_ES2015 + OPTIONS_SNAPSHOT,
             ['--snapshot']),
     Options('jerry_test_suite-es2015_subset-debug-snapshot',
-            OPTIONS_PROFILE_ES2015 + OPTIONS_SNAPSHOT + OPTIONS_DEBUG,
+            OPTIONS_COMMON + OPTIONS_PROFILE_ES2015 + OPTIONS_SNAPSHOT + OPTIONS_DEBUG,
             ['--snapshot']),
 ])
 
@@ -148,7 +152,7 @@ JERRY_BUILDOPTIONS = [
     Options('buildoption_test-no_jerry_libm',
             ['--jerry-libm=off', '--link-lib=m']),
     Options('buildoption_test-no_lcache_prophashmap',
-            ['--compile-flag=-DCONFIG_ECMA_LCACHE_DISABLE', '--compile-flag=-DCONFIG_ECMA_PROPERTY_HASHMAP_DISABLE']),
+            ['--compile-flag=-DJERRY_LCACHE=0', '--compile-flag=-DJERRY_PROPRETY_HASHMAP=0']),
     Options('buildoption_test-external_context',
             ['--external-context=on']),
     Options('buildoption_test-shared_libs',
@@ -157,10 +161,8 @@ JERRY_BUILDOPTIONS = [
             ['--jerry-cmdline-test=on']),
     Options('buildoption_test-cmdline_snapshot',
             ['--jerry-cmdline-snapshot=on']),
-    Options('buildoption_test-regexp_recursion_limit',
-            ['--regexp-recursion-limit=1000']),
-    Options('buildoption_test-vm_recursion_limit',
-            OPTIONS_CALL_STACK_LIMIT),
+    Options('buildoption_test-recursion_limit',
+            OPTIONS_STACK_LIMIT),
     Options('buildoption_test-single-source',
             ['--cmake-param=-DENABLE_ALL_IN_ONE_SOURCE=ON']),
 ]

@@ -361,12 +361,12 @@ ecma_get_lex_env_binding_object (const ecma_object_t *object_p) /**< object-boun
 {
   JERRY_ASSERT (object_p != NULL);
   JERRY_ASSERT (ecma_is_lexical_environment (object_p));
-#if ENABLED (JERRY_ES2015)
+#if ENABLED (JERRY_ES2015_CLASS)
   JERRY_ASSERT (ecma_get_lex_env_type (object_p) == ECMA_LEXICAL_ENVIRONMENT_THIS_OBJECT_BOUND
                 || ecma_get_lex_env_type (object_p) == ECMA_LEXICAL_ENVIRONMENT_SUPER_OBJECT_BOUND);
-#else /* defined (JERRY_ES2015) || (JERRY_ES2015 == 0) */
+#else /* !ENABLED (JERRY_ES2015_CLASS) */
   JERRY_ASSERT (ecma_get_lex_env_type (object_p) == ECMA_LEXICAL_ENVIRONMENT_THIS_OBJECT_BOUND);
-#endif /* ENABLED (JERRY_ES2015) */
+#endif /* ENABLED (JERRY_ES2015_CLASS) */
 
   return ECMA_GET_NON_NULL_POINTER (ecma_object_t,
                                     object_p->property_list_or_bound_object_cp);
@@ -1598,6 +1598,21 @@ ecma_bytecode_deref (ecma_compiled_code_t *bytecode_p) /**< byte code pointer */
   jmem_heap_free_block (bytecode_p,
                         ((size_t) bytecode_p->size) << JMEM_ALIGNMENT_LOG);
 } /* ecma_bytecode_deref */
+
+#if (JERRY_STACK_LIMIT != 0)
+/**
+ * Check the current stack usage by calculating the difference from the initial stack base.
+ *
+ * @return current stack usage in bytes
+ */
+uintptr_t JERRY_ATTR_NOINLINE
+ecma_get_current_stack_usage (void)
+{
+  volatile int __sp;
+  return (uintptr_t) (JERRY_CONTEXT (stack_base) - (uintptr_t)&__sp);
+} /* ecma_get_current_stack_usage */
+
+#endif /* (JERRY_STACK_LIMIT != 0) */
 
 /**
  * @}

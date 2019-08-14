@@ -59,7 +59,7 @@ typedef enum
   ECMA_STATUS_API_AVAILABLE     = (1u << 0), /**< api available */
   ECMA_STATUS_DIRECT_EVAL       = (1u << 1), /**< eval is called directly */
 #if ENABLED (JERRY_PROPRETY_HASHMAP)
-  ECMA_STATUS_HIGH_SEV_GC       = (1u << 2), /**< last gc run was a high severity run */
+  ECMA_STATUS_HIGH_PRESSURE_GC  = (1u << 2), /**< last gc was under high pressure */
 #endif /* ENABLED (JERRY_PROPRETY_HASHMAP) */
   ECMA_STATUS_EXCEPTION         = (1u << 3), /**< last exception is a normal exception */
 } ecma_status_flag_t;
@@ -105,6 +105,7 @@ typedef enum
   ECMA_PARSE_HAS_SUPER = (1u << 3), /**< the current context has super reference */
   ECMA_PARSE_HAS_IMPL_SUPER = (1u << 4), /**< the current context has implicit parent class */
   ECMA_PARSE_HAS_STATIC_SUPER = (1u << 5), /**< the current context is a static class method */
+  ECMA_PARSE_EVAL = (1u << 6), /**< eval is called */
 } ecma_parse_opts_t;
 
 /**
@@ -1540,6 +1541,25 @@ typedef struct
  * Bitshift index for the symbol hash property
  */
 #define ECMA_SYMBOL_HASH_SHIFT 2
+
+#if (JERRY_STACK_LIMIT != 0)
+/**
+ * Check the current stack usage. If the limit is reached a RangeError is raised.
+ */
+#define ECMA_CHECK_STACK_USAGE() \
+do \
+{ \
+  if (ecma_get_current_stack_usage () > CONFIG_MEM_STACK_LIMIT) \
+  { \
+    return ecma_raise_range_error (ECMA_ERR_MSG ("Maximum call stack size exceeded.")); \
+  } \
+} while (0)
+#else /* JERRY_STACK_LIMIT == 0) */
+/**
+ * If the stack limit is unlimited, this check is an empty macro.
+ */
+#define ECMA_CHECK_STACK_USAGE()
+#endif /* (JERRY_STACK_LIMIT != 0) */
 
 /**
  * @}

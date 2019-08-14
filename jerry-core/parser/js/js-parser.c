@@ -2397,6 +2397,11 @@ parser_parse_source (const uint8_t *arg_list_p, /**< function argument list */
   context.status_flags |= parse_opts & PARSER_STRICT_MODE_MASK;
 
 #if ENABLED (JERRY_ES2015_MODULE_SYSTEM)
+  if (parse_opts & ECMA_PARSE_EVAL)
+  {
+    context.status_flags |= PARSER_IS_EVAL;
+  }
+
   context.module_current_node_p = NULL;
 #endif /* ENABLED (JERRY_ES2015_MODULE_SYSTEM) */
 
@@ -2962,8 +2967,9 @@ parser_parse_script (const uint8_t *arg_list_p, /**< function argument list */
     ecma_value_t col_str_val = ecma_make_uint32_value (parser_error.column);
 
     ecma_value_t error_value = ecma_raise_standard_error_with_format (ECMA_ERROR_SYNTAX,
-                                                                      "% [line: %, column: %]",
+                                                                      "% [%:%:%]",
                                                                       err_str_val,
+                                                                      JERRY_CONTEXT (resource_name),
                                                                       line_str_val,
                                                                       col_str_val);
 
